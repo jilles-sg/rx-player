@@ -14,14 +14,8 @@
  * limitations under the License.
  */
 
-import createMetaplaylist from "./createMetaplaylist";
-import mediaCapabilitiesProber from "./mediaCapabilitiesProber";
-import parseBifThumbnails from "./parseBIFThumbnails";
-import TextTrackRenderer from "./TextTrackRenderer";
-import VideoThumbnailLoader from "./videoThumbnailLoader";
+import Logger from "../../../utils/logger";
 
-export { createMetaplaylist,
-         mediaCapabilitiesProber,
-         parseBifThumbnails,
-         TextTrackRenderer,
-         VideoThumbnailLoader };
+const logger = new Logger();
+
+export default logger;
