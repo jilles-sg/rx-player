@@ -24,6 +24,7 @@ function Player() {
   const [displaySpinner, setDisplaySpinner] = useState(false);
   const [displaySettings, setDisplaySettings] = useState(false);
   const [isStopped, setIsStopped] = useState(false);
+  const [enableVideoThumbnails, setEnableVideoThumbnails] = useState(false);
 
   const videoElement = useRef(null);
   const textTrackElement = useRef(null);
@@ -108,6 +109,7 @@ function Player() {
   }, [player]);
 
   const loadVideo = useCallback((video) => {
+    setEnableVideoThumbnails(video.enableVideoThumbnails);
     if (video.lowLatencyMode) {
       player.dispatch("ENABLE_LIVE_CATCH_UP");
     } else {
@@ -182,6 +184,7 @@ function Player() {
                 videoElement={playerWrapperElement.current}
                 toggleSettings={toggleSettings}
                 stopVideo={stopVideo}
+                enableVideoThumbnails={enableVideoThumbnails}
               /> : null
           }
         </div>
