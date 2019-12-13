@@ -50,6 +50,26 @@ interface IJob { thumbnailTrack: IThumbnailTrack;
                  thumbnails: IThumbnail[];
                  stop: () => void; }
 
+// Returned error when rejecting
+class VideoThumbnailLoaderError extends Error {
+  public readonly name : "VideoThumbnailLoaderError";
+  public readonly message : string;
+  public readonly code : string;
+
+  /**
+   * @param {string} code
+   * @param {string} reason
+   * @param {Boolean} fatal
+   */
+  constructor(code : string, message : string) {
+    super();
+    Object.setPrototypeOf(this, VideoThumbnailLoaderError.prototype);
+    this.name = "VideoThumbnailLoaderError";
+    this.code = code;
+    this.message = message;
+  }
+}
+
 /**
  * This tool, as a supplement to the RxPlayer, intent to help creating thumbnails
  * from a video source.
@@ -101,39 +121,35 @@ export default class VideoThumbnailLoader {
   ): void => {
     const { time, done, failed } = payload;
     if (time === this._thumbnailVideoElement.currentTime) {
-      return failed(new Error("VideoThumbnailLoaderError: " +
-                              "Already at this time."));
+      return done(time);
     }
     const period = this._manifest.getPeriodForTime(payload.time);
     if (period === undefined ||
         period.adaptations.video === undefined ||
         period.adaptations.video.length === 0) {
-      return failed(new Error("VideoThumbnailLoaderError: " +
-                              "Couldn't find track for this time."));
+      return failed(new VideoThumbnailLoaderError("NO_TRACK",
+                                                  "Couldn't find track for this time."));
     }
     const videoAdaptation = period.adaptations.video[0];
     const representation = videoAdaptation.trickModeTrack?.representations[0] ??
                            videoAdaptation.representations[0];
     if (representation === undefined) {
-      return failed(new Error("VideoThumbnailLoaderError: " +
-                              "Couldn't find track for this time."));
+      return failed(new VideoThumbnailLoaderError("NO_TRACK",
+                                                  "Couldn't find track for this time."));
     }
     const thumbnailTrack = getThumbnailTrack(representation);
     if (thumbnailTrack.initURL === "") {
-      return failed(new Error("VideoThumbnailLoaderError: " +
-                              "No init data for track."));
+      return failed(new VideoThumbnailLoaderError("NO_INIT_DATA", "No init data for track."));
     }
     const thumbnails = getWantedThumbnails(thumbnailTrack,
                                            payload.time,
                                            videoElement.buffered);
     if (thumbnails === null) {
-      return failed(new Error("VideoThumbnailLoaderError: " +
-                              "Couldn't find thumbnail."));
+      return failed(new VideoThumbnailLoaderError("NO_THUMBNAILS", "Couldn't find thumbnail."));
     }
     if (thumbnails.length === 0) {
       log.debug("VTL: Thumbnail already loaded.");
-      return failed(new Error("VideoThumbnailLoaderError: " +
-                              "Video thumbnail already loaded."));
+      return done(time);
     }
     log.debug("VTL: Found thumbnails for time", payload.time, thumbnails);
 
@@ -154,8 +170,8 @@ export default class VideoThumbnailLoader {
         return this.startJob(thumbnailTrack, time, thumbnails, done, failed);
       }
     }
-    return failed(new Error("VideoThumbnailLoaderError: " +
-                            "Already loading these thumbnails."));
+    return failed(new VideoThumbnailLoaderError("ALREADY_LOADING",
+                                                "Already loading these thumbnails."));
   }
 
   private startJob = (thumbnailTrack: IThumbnailTrack,
@@ -192,8 +208,12 @@ export default class VideoThumbnailLoader {
                     tap(() => {
                       this._currentJob = undefined;
                       if (this._thumbnailVideoElement.buffered.length === 0) {
-                        failed(new Error("VideoThumbnailLoaderError: " +
-                                         "No buffered data after loading."));
+                        failed(
+                          new VideoThumbnailLoaderError(
+                            "NOT_BUFFERED",
+                            "No buffered data after loading."
+                          )
+                        );
                       } else {
                         done(time);
                       }
@@ -206,7 +226,9 @@ export default class VideoThumbnailLoader {
       }),
       catchError((err: Error | { message?: string }) => {
         this.dispose();
-        const newError = new Error("VideoThumbnailLoaderError: " + (err.message ?? "Unknown error"));
+        const newError =
+          new VideoThumbnailLoaderError("LOADING_ERROR",
+                                        (err.message ?? "Unknown error"));
         this._currentJob = undefined;
         failed(newError);
         return EMPTY;
@@ -215,7 +237,9 @@ export default class VideoThumbnailLoader {
       () => ({}),
       (err: Error | { message?: string }) => {
         this.dispose();
-        const newError = new Error("VideoThumbnailLoaderError: " + (err.message ?? "Unknown error"));
+        const newError =
+          new VideoThumbnailLoaderError("LOADING_ERROR",
+                                        (err.message ?? "Unknown error"));
         this._currentJob = undefined;
         failed(newError);
       }
@@ -227,7 +251,8 @@ export default class VideoThumbnailLoader {
       stop: () => {
         this._currentJob = undefined;
         subscription.unsubscribe();
-        failed(new Error("VideoThumbnailLoaderError: Aborted job."));
+        failed(new VideoThumbnailLoaderError("ABORTED",
+                                             "VideoThumbnailLoaderError: Aborted job."));
       },
     };
 

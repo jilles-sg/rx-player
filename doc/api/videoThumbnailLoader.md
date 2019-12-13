@@ -24,29 +24,16 @@ rx-player``) and then specifically importing this tool from
 
 ```js
 import { VideoThumbnailLoader } from "rx-player/experimental/tools";
+import RxPlayer from "rx-player";
 
-const currentAdaptations = player.currentAdaptations();
-if (
-  currentAdaptations.video &&
-  currentAdaptations.video.trickModeTrack &&
-  currentAdaptations.video.trickModeTrack.representations[0]
-) {
-  const track = currentAdaptations.video.trickModeTrack.representations[0];
-  const videoElement = document.createElement("video");
-  const videoThumbnailLoader = new VideoThumbnailLoader(
-    videoElement,
-    track
-  );
-}
-
-  const player = new RxPlayer({ /* some options */ });
-  player.loadVideo({ /* some other options */ });
-  const videoElement = document.createElement("video");
-  const manifest = player.getManifest();
-  const videoThumbnailLoader = new VideoThumbnailLoader(
-    videoElement,
-    manifest
-  );
+const player = new RxPlayer({ /* some options */ });
+player.loadVideo({ /* some other options */ });
+const videoElement = document.createElement("video");
+const manifest = player.getManifest();
+const videoThumbnailLoader = new VideoThumbnailLoader(
+  videoElement,
+  manifest
+);
 ```
 
 
@@ -65,13 +52,31 @@ _arguments_:
 _return value_: ``Promise``
 
 From a given time, load video segments, and append to video element.
+The loader find the period for the given time. In this period, it chooses
+the first video adaptation. If a trick mode track is present on it, choose it.
+Otherwise, select the first representation.
 
 #### Return value
 
 The return value is a Promise.
 It :
 - ``resolve`` when the thumbnail for given time has been loaded.
-- ``reject`` in case of error.
+- ``reject`` in case of error : return an error.
+
+The promise does not only rejects when setting thumbnail has failed. There are
+some cases where the thumbnail loader decides not to load. Here is a list of
+every failure code (``error.code``) :
+- NO_TRACK : In the manifest you've given, there are either no period or no
+             representation to get video chunks.
+- NO_INIT_DATA : The chosen track does not have an init data, so it can't be
+                 buffered.
+- NO_THUMBNAILS : No segments are available for this time of the track.
+- ALREADY_LOADING : The thumbnail loader is already loading this thumbnail.
+- NOT_BUFFERED : After the thumbnail has been loaded, no buffered data is in
+                 the video element. It can be due to too short video chunks.
+- LOADING_ERROR : An error occured when loading thumbnail into video element.
+- ABORTED : The loading has been aborted (probably because of another job
+            started)
 
 #### Example
 
