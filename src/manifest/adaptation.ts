@@ -59,8 +59,7 @@ export interface IRepresentationInfos { bufferType: IAdaptationType;
 
 /** Type for the `representationFilter` API. */
 export type IRepresentationFilter = (representation: Representation,
-                                     adaptationInfos: IRepresentationInfos)
-                                    => boolean;
+                                     adaptationInfos: IRepresentationInfos) => boolean;
 
 /**
  * Normalized Adaptation structure.
@@ -126,6 +125,8 @@ export default class Adaptation {
    */
   public readonly parsingErrors : ICustomError[];
 
+  public readonly trickModeTrack? : Adaptation;
+
   /**
    * @constructor
    * @param {Object} parsedAdaptation
@@ -135,6 +136,7 @@ export default class Adaptation {
     representationFilter? : IRepresentationFilter;
     isManuallyAdded? : boolean;
   } = {}) {
+    const { trickModeTrack } = parsedAdaptation;
     const { representationFilter, isManuallyAdded } = options;
     this.parsingErrors = [];
     this.id = parsedAdaptation.id;
@@ -163,6 +165,10 @@ export default class Adaptation {
     }
     if (parsedAdaptation.isSignInterpreted !== undefined) {
       this.isSignInterpreted = parsedAdaptation.isSignInterpreted;
+    }
+
+    if (trickModeTrack !== undefined) {
+      this.trickModeTrack = new Adaptation(trickModeTrack);
     }
 
     const argsRepresentations = parsedAdaptation.representations;
