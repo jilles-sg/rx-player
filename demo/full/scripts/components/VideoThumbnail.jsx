@@ -80,7 +80,7 @@ class VideoThumbnail extends React.Component {
         if (el !== null &&
             (
               !this.videoThumbnailLoader ||
-              this.videoThumbnailLoader._thumbnailVideoElement !== el
+              this.videoThumbnailLoader._videoElement !== el
             )) {
           this.videoThumbnailLoader = new VideoThumbnailLoader(el, this.props.manifest);
         }

@@ -23,7 +23,7 @@ import openMediaSource from "../../../core/init/create_media_source";
 import LightVideoQueuedSourceBuffer from "./light_video_queued_source_buffer";
 
 /**
- * Prepare source buffer
+ * Open the media source and create the queued source buffer.
  * @param {HTMLVideoElement} elt
  * @param {string} codec
  * @returns {Observable}

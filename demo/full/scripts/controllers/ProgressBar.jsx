@@ -99,12 +99,6 @@ class Progressbar extends React.Component {
     });
   }
 
-  componentWillUnmount() {
-    if (this.vtlSubscription) {
-      this.vtlSubscription.unsubscribe();
-    }
-  }
-
   render() {
     const {
       thumbnailIsVisible,

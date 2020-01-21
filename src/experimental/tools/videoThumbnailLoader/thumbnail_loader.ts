@@ -16,59 +16,49 @@
 
 import pinkie from "pinkie";
 import {
-  combineLatest as observableCombineLatest,
-  EMPTY,
+  merge as observableMerge,
   Observable,
-  of as observableOf,
+  ReplaySubject,
 } from "rxjs";
 import {
   catchError,
+  filter,
+  map,
   mergeMap,
-  tap,
+  take,
 } from "rxjs/operators";
-import Manifest from "../../../manifest";
+import Manifest, { ISegment } from "../../../manifest";
+import getContentInfos from "./get_content_infos";
 import {
   disposeSourceBuffer,
-  getSourceBuffer$,
-} from "./get_source_buffer";
+  initSourceBuffer$,
+} from "./init_source_buffer";
 import log from "./log";
+import removeBufferForTime$ from "./remove_buffer";
 import {
-  loadInitThumbnail,
-  loadThumbnails
-} from "./segment_utils";
-import {
-  getThumbnailTrack,
-  getWantedThumbnails,
-  IThumbnail,
-  IThumbnailTrack,
-} from "./thumbnail_track_utils";
+  getNeededSegment,
+  IContentInfos,
+} from "./utils";
+import VideoThumbnailLoaderError from "./video_thumbnail_loader_error";
+
+import createSegmentLoader from "../../../core/pipelines/segment/create_segment_loader";
+import dash from "../../../transports/dash";
 
 const PPromise = typeof Promise === "function" ? Promise :
                                                  pinkie;
 
-interface IJob { thumbnailTrack: IThumbnailTrack;
-                 thumbnails: IThumbnail[];
-                 stop: () => void; }
+interface IJob { contentInfos: IContentInfos;
+                 segment: ISegment;
+                 stop: () => void;
+                 jobPromise: Promise<unknown>; }
 
-// Returned error when rejecting
-class VideoThumbnailLoaderError extends Error {
-  public readonly name : "VideoThumbnailLoaderError";
-  public readonly message : string;
-  public readonly code : string;
-
-  /**
-   * @param {string} code
-   * @param {string} reason
-   * @param {Boolean} fatal
-   */
-  constructor(code : string, message : string) {
-    super();
-    Object.setPrototypeOf(this, VideoThumbnailLoaderError.prototype);
-    this.name = "VideoThumbnailLoaderError";
-    this.code = code;
-    this.message = message;
-  }
-}
+const segmentLoader = createSegmentLoader(
+  dash({ lowLatencyMode: false }).video.loader,
+  { maxRetry: 0,
+    maxRetryOffline: 0,
+    initialBackoffDelay: 0,
+    maximumBackoffDelay: 0, }
+);
 
 /**
  * This tool, as a supplement to the RxPlayer, intent to help creating thumbnails
@@ -78,14 +68,14 @@ class VideoThumbnailLoaderError extends Error {
  * chunks are adapted from such use case) or direclty from the media content.
  */
 export default class VideoThumbnailLoader {
-  private readonly _thumbnailVideoElement: HTMLVideoElement;
+  private readonly _videoElement: HTMLVideoElement;
 
   private _manifest: Manifest;
   private _currentJob?: IJob;
 
   constructor(videoElement: HTMLVideoElement,
               manifest: Manifest) {
-    this._thumbnailVideoElement = videoElement;
+    this._videoElement = videoElement;
     this._manifest = manifest;
   }
 
@@ -100,9 +90,7 @@ export default class VideoThumbnailLoader {
    * @returns {Promise}
    */
   setTime(time: number): Promise<unknown> {
-    return new PPromise((done, failed) => {
-      this._setTime({ time, done, failed }, this._thumbnailVideoElement);
-    });
+    return this._setTime(time, this._videoElement);
   }
 
   /**
@@ -110,152 +98,135 @@ export default class VideoThumbnailLoader {
    * @returns {void}
    */
   dispose(): void {
-    disposeSourceBuffer();
-    return this._currentJob?.stop();
+    disposeSourceBuffer(this._videoElement);
+    this._currentJob?.stop();
   }
 
-  private _setTime = (payload: { time: number;
-                                 done: (time: number) => void;
-                                 failed: (err: unknown) => void; },
+  private _setTime = (time: number,
                       videoElement: HTMLVideoElement
-  ): void => {
-    const { time, done, failed } = payload;
-    if (time === this._thumbnailVideoElement.currentTime) {
-      return done(time);
+  ): Promise<unknown> => {
+
+    for (let i = 0; i < videoElement.buffered.length; i++) {
+      if (videoElement.buffered.start(i) <= time &&
+          videoElement.buffered.end(i) >= time) {
+        this._videoElement.currentTime = time;
+        log.debug("VTL: Thumbnail already loaded.");
+        return PPromise.resolve(time);
+      }
     }
-    const period = this._manifest.getPeriodForTime(payload.time);
-    if (period === undefined ||
-        period.adaptations.video === undefined ||
-        period.adaptations.video.length === 0) {
-      return failed(new VideoThumbnailLoaderError("NO_TRACK",
+
+    const contentInfos = getContentInfos(time, this._manifest);
+    if (contentInfos === null) {
+      return PPromise.reject(new VideoThumbnailLoaderError("NO_TRACK",
                                                   "Couldn't find track for this time."));
     }
-    const videoAdaptation = period.adaptations.video[0];
-    const representation = videoAdaptation.trickModeTrack?.representations[0] ??
-                           videoAdaptation.representations[0];
-    if (representation === undefined) {
-      return failed(new VideoThumbnailLoaderError("NO_TRACK",
-                                                  "Couldn't find track for this time."));
+    const initURL = contentInfos.representation.index.getInitSegment()?.mediaURL ?? "";
+    if (initURL === "") {
+      return PPromise.reject(new VideoThumbnailLoaderError("NO_INIT_DATA", "No init data for track."));
     }
-    const thumbnailTrack = getThumbnailTrack(representation);
-    if (thumbnailTrack.initURL === "") {
-      return failed(new VideoThumbnailLoaderError("NO_INIT_DATA", "No init data for track."));
+    const segment = getNeededSegment(contentInfos,
+                                         time);
+    if (segment === undefined) {
+      return PPromise.reject(new VideoThumbnailLoaderError("NO_THUMBNAILS", "Couldn't find thumbnail."));
     }
-    const thumbnails = getWantedThumbnails(thumbnailTrack,
-                                           payload.time,
-                                           videoElement.buffered);
-    if (thumbnails === null) {
-      return failed(new VideoThumbnailLoaderError("NO_THUMBNAILS", "Couldn't find thumbnail."));
-    }
-    if (thumbnails.length === 0) {
-      log.debug("VTL: Thumbnail already loaded.");
-      return done(time);
-    }
-    log.debug("VTL: Found thumbnails for time", payload.time, thumbnails);
+
+    log.debug("VTL: Found thumbnail for time", time, segment);
 
     if (this._currentJob === undefined) {
-      return this.startJob(thumbnailTrack, time, thumbnails, done, failed);
+      return this.startJob(contentInfos, time, segment);
     }
 
-    if (this._currentJob.thumbnailTrack.codec !== thumbnailTrack.codec ||
-        this._currentJob.thumbnails.length !== thumbnails.length) {
+    if (this._currentJob.contentInfos.representation.getMimeTypeString() !==
+        contentInfos.representation.getMimeTypeString()) {
       this._currentJob.stop();
-      return this.startJob(thumbnailTrack, time, thumbnails, done, failed);
+      return this.startJob(contentInfos, time, segment);
     }
-    for (let j = 0; j < thumbnails.length; j++) {
-      if (this._currentJob.thumbnails[j].start !== thumbnails[j].start ||
-          this._currentJob.thumbnails[j].duration !== thumbnails[j].duration ||
-          this._currentJob.thumbnails[j].mediaURL !== thumbnails[j].mediaURL) {
-        this._currentJob.stop();
-        return this.startJob(thumbnailTrack, time, thumbnails, done, failed);
-      }
+    if (this._currentJob.segment.time !== segment.time ||
+        this._currentJob.segment.duration !== segment.duration ||
+        this._currentJob.segment.mediaURL !== segment.mediaURL) {
+      this._currentJob.stop();
+      return this.startJob(contentInfos, time, segment);
     }
-    return failed(new VideoThumbnailLoaderError("ALREADY_LOADING",
-                                                "Already loading these thumbnails."));
+
+    // If we reach this endpoint, it means the current job is already handling
+    // the loading for the wanted time (same thumbnail).
+    return this._currentJob.jobPromise;
   }
 
-  private startJob = (thumbnailTrack: IThumbnailTrack,
+  private startJob = (contentInfos: IContentInfos,
                       time: number,
-                      thumbnails: IThumbnail[],
-                      done: (time: number) => void,
-                      failed: (e: Error) => void
-  ) => {
-    const subscription = getSourceBuffer$(thumbnailTrack,
-                                          this._thumbnailVideoElement).pipe(
-      mergeMap((videoSourceBufferEvt) => {
-        const { type, value: videoSourceBuffer } = videoSourceBufferEvt;
-        return (
-          type === "reuse-source-buffer" ? observableOf(null) :
-                                           loadInitThumbnail(thumbnailTrack,
-                                                             videoSourceBuffer)
-        ).pipe(
-          mergeMap(() => {
-            const removeBuffers$: Observable<unknown> =
-              this._thumbnailVideoElement.buffered.length > 0 ?
-                observableCombineLatest([
-                  videoSourceBuffer.removeBuffer(0, time - 5),
-                  videoSourceBuffer.removeBuffer(time + 5, Infinity)]) :
-                observableOf(null);
-            return removeBuffers$.pipe(
-              mergeMap(() => {
-                log.debug("VTL: Removed buffer before appending segments.", time);
-                return loadThumbnails(thumbnails,
-                                      videoSourceBuffer,
-                                      thumbnailTrack.codec,
-                                      time,
-                                      this._thumbnailVideoElement)
-                  .pipe(
-                    tap(() => {
-                      this._currentJob = undefined;
-                      if (this._thumbnailVideoElement.buffered.length === 0) {
-                        failed(
-                          new VideoThumbnailLoaderError(
-                            "NOT_BUFFERED",
-                            "No buffered data after loading."
-                          )
-                        );
-                      } else {
-                        done(time);
-                      }
-                    })
-                  );
-              })
-            );
-          })
-        );
-      }),
-      catchError((err: Error | { message?: string }) => {
-        this.dispose();
-        const newError =
-          new VideoThumbnailLoaderError("LOADING_ERROR",
-                                        (err.message ?? "Unknown error"));
-        this._currentJob = undefined;
-        failed(newError);
-        return EMPTY;
+                      segment: ISegment
+  ): Promise<unknown> => {
+    const killJob$ = new ReplaySubject();
+
+    const abortError$ = killJob$.pipe(
+      map(() => {
+        throw new VideoThumbnailLoaderError("ABORTED",
+                                            "VideoThumbnailLoaderError: Aborted job.");
       })
-    ).subscribe(
-      () => ({}),
-      (err: Error | { message?: string }) => {
-        this.dispose();
-        const newError =
-          new VideoThumbnailLoaderError("LOADING_ERROR",
-                                        (err.message ?? "Unknown error"));
-        this._currentJob = undefined;
-        failed(newError);
-      }
     );
 
+    const jobPromise = observableMerge(
+      initSourceBuffer$(contentInfos,
+                        this._videoElement).pipe(
+        mergeMap((videoSourceBuffer) => {
+          const removeBuffers$: Observable<unknown> =
+            removeBufferForTime$(this._videoElement, videoSourceBuffer, time);
+          return removeBuffers$.pipe(
+            mergeMap(() => {
+              log.debug("VTL: Removed buffer before appending segments.", time);
+
+              return segmentLoader({
+                manifest: contentInfos.manifest,
+                period: contentInfos.manifest.periods[0],
+                adaptation: contentInfos.adaptation,
+                representation: contentInfos.representation,
+                segment,
+              }).pipe(
+                filter((evt): evt is { type: "data";
+                                       value: { responseData: Uint8Array }; } =>
+                  evt.type === "data"),
+                mergeMap((evt) => {
+                  return videoSourceBuffer
+                    .appendSegment({ chunk: evt.value.responseData,
+                                     initSegment: null,
+                                     codec: contentInfos
+                                       .representation.getMimeTypeString() })
+                      .pipe(map(() => {
+                        log.debug("VTL: Appended segment.", evt.value.responseData);
+                        this._videoElement.currentTime = time;
+                        if (this._videoElement.buffered.length === 0) {
+                          throw new VideoThumbnailLoaderError("NOT_BUFFERED",
+                                                              "No buffered data after loading.");
+                        } else {
+                          return time;
+                        }
+                      })
+                    );
+                })
+              );
+            })
+          );
+        }),
+        catchError((err: Error | { message?: string; toString(): string }) => {
+          const newError =
+            new VideoThumbnailLoaderError("LOADING_ERROR",
+                                          (err.message ?? err.toString()));
+          throw newError;
+        })
+      ),
+      abortError$
+    ).pipe(take(1)).toPromise(PPromise)
+      .then((res) => { this._currentJob = undefined; return res; })
+      .catch((err) => { this._currentJob = undefined; throw err; });
+
     this._currentJob = {
-      thumbnailTrack,
-      thumbnails,
-      stop: () => {
-        this._currentJob = undefined;
-        subscription.unsubscribe();
-        failed(new VideoThumbnailLoaderError("ABORTED",
-                                             "VideoThumbnailLoaderError: Aborted job."));
-      },
+      contentInfos,
+      segment,
+      stop: () => killJob$.next(),
+      jobPromise,
     };
 
-    return;
+    return jobPromise;
   }
 }

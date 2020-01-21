@@ -14,7 +14,22 @@
  * limitations under the License.
  */
 
-import log from "../../../log";
+// Returned error when rejecting
+export default class VideoThumbnailLoaderError extends Error {
+  public readonly name : "VideoThumbnailLoaderError";
+  public readonly message : string;
+  public readonly code : string;
 
-// Re-use logger from RxPlayer
-export default log;
+  /**
+   * @param {string} code
+   * @param {string} reason
+   * @param {Boolean} fatal
+   */
+  constructor(code : string, message : string) {
+    super();
+    Object.setPrototypeOf(this, VideoThumbnailLoaderError.prototype);
+    this.name = "VideoThumbnailLoaderError";
+    this.code = code;
+    this.message = message;
+  }
+}
