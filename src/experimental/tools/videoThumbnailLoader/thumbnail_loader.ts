@@ -118,14 +118,14 @@ export default class VideoThumbnailLoader {
     const contentInfos = getContentInfos(time, this._manifest);
     if (contentInfos === null) {
       return PPromise.reject(new VideoThumbnailLoaderError("NO_TRACK",
-                                                  "Couldn't find track for this time."));
+                                                           "Couldn't find track for this time."));
     }
     const initURL = contentInfos.representation.index.getInitSegment()?.mediaURL ?? "";
     if (initURL === "") {
       return PPromise.reject(new VideoThumbnailLoaderError("NO_INIT_DATA", "No init data for track."));
     }
     const segment = getNeededSegment(contentInfos,
-                                         time);
+                                     time);
     if (segment === undefined) {
       return PPromise.reject(new VideoThumbnailLoaderError("NO_THUMBNAILS", "Couldn't find thumbnail."));
     }
