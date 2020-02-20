@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import objectAssign from "object-assign";
 import {
   fromEvent,
   interval,
@@ -31,6 +30,7 @@ import {
   tryToChangeSourceBufferType,
 } from "../../../compat";
 import config from "../../../config";
+import objectAssign from "../../../utils/object_assign";
 import log from "./log";
 
 const { SOURCE_BUFFER_FLUSHING_INTERVAL, } = config;
