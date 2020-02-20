@@ -346,9 +346,10 @@ export default function parseAdaptationSets(
       const representations = parseRepresentations(representationsIR,
                                                    adaptation,
                                                    adaptationInfos);
-      const parsedAdaptationSet : IParsedAdaptation = { id: adaptationID,
-                                                        representations,
-                                                        type };
+      const parsedAdaptationSet : IParsedAdaptation =
+        { id: (isTrickModeFor != null ? "trickmode-" : "") + adaptationID,
+          representations,
+          type };
       if (adaptation.attributes.language != null) {
         parsedAdaptationSet.language = adaptation.attributes.language;
       }
