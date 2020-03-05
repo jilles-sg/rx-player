@@ -5,7 +5,7 @@ import { manifestInfos } from "../../contents/DASH_static_SegmentTimeline";
 import XHRMock from "../../utils/request_mock";
 import sleep from "../../utils/sleep";
 
-describe("Video Thumbnail Loader", () => {
+describe.only("Video Thumbnail Loader", () => {
   let rxPlayer;
   let xhrMock;
 
@@ -46,9 +46,9 @@ describe("Video Thumbnail Loader", () => {
     const manifest = rxPlayer.getManifest();
     const refToVideoAdaptation = manifest.periods[0].adaptations.video[0];
     expect(refToVideoAdaptation).not.to.equal(undefined);
-    manifest.periods[0].adaptations.video[0].trickModeTrack =
-      refToVideoAdaptation;
-    expect(manifest.periods[0].adaptations.video[0].trickModeTrack)
+    manifest.periods[0].adaptations.video[0].trickModeTracks =
+      [refToVideoAdaptation];
+    expect(manifest.periods[0].adaptations.video[0].trickModeTracks)
       .not.to.equal(undefined);
     const videoThumbnailLoader =
       new VideoThumbnailLoader(videoElement, manifest);
@@ -74,9 +74,9 @@ describe("Video Thumbnail Loader", () => {
     const manifest = rxPlayer.getManifest();
     const refToVideoAdaptation = manifest.periods[0].adaptations.video[0];
     expect(refToVideoAdaptation).not.to.equal(undefined);
-    manifest.periods[0].adaptations.video[0].trickModeTrack =
-      refToVideoAdaptation;
-    expect(manifest.periods[0].adaptations.video[0].trickModeTrack)
+    manifest.periods[0].adaptations.video[0].trickModeTracks =
+      [refToVideoAdaptation];
+    expect(manifest.periods[0].adaptations.video[0].trickModeTracks)
       .not.to.equal(undefined);
     const videoThumbnailLoader =
       new VideoThumbnailLoader(videoElement, manifest);
@@ -107,9 +107,9 @@ describe("Video Thumbnail Loader", () => {
     const manifest = rxPlayer.getManifest();
     const refToVideoAdaptation = manifest.periods[0].adaptations.video[0];
     expect(refToVideoAdaptation).not.to.equal(undefined);
-    manifest.periods[0].adaptations.video[0].trickModeTrack =
-      refToVideoAdaptation;
-    expect(manifest.periods[0].adaptations.video[0].trickModeTrack)
+    manifest.periods[0].adaptations.video[0].trickModeTracks =
+      [refToVideoAdaptation];
+    expect(manifest.periods[0].adaptations.video[0].trickModeTracks)
       .not.to.equal(undefined);
     const videoThumbnailLoader =
       new VideoThumbnailLoader(videoElement, manifest);
@@ -158,9 +158,9 @@ describe("Video Thumbnail Loader", () => {
     const manifest = rxPlayer.getManifest();
     const refToVideoAdaptation = manifest.periods[0].adaptations.video[0];
     expect(refToVideoAdaptation).not.to.equal(undefined);
-    manifest.periods[0].adaptations.video[0].trickModeTrack =
-      refToVideoAdaptation;
-    expect(manifest.periods[0].adaptations.video[0].trickModeTrack)
+    manifest.periods[0].adaptations.video[0].trickModeTracks =
+      [refToVideoAdaptation];
+    expect(manifest.periods[0].adaptations.video[0].trickModeTracks)
       .not.to.equal(undefined);
     const videoThumbnailLoader =
       new VideoThumbnailLoader(videoElement, manifest);
@@ -210,9 +210,9 @@ describe("Video Thumbnail Loader", () => {
     const manifest = rxPlayer.getManifest();
     const refToVideoAdaptation = manifest.periods[0].adaptations.video[0];
     expect(refToVideoAdaptation).not.to.equal(undefined);
-    manifest.periods[0].adaptations.video[0].trickModeTrack =
-      refToVideoAdaptation;
-    expect(manifest.periods[0].adaptations.video[0].trickModeTrack)
+    manifest.periods[0].adaptations.video[0].trickModeTracks =
+      [refToVideoAdaptation];
+    expect(manifest.periods[0].adaptations.video[0].trickModeTracks)
       .not.to.equal(undefined);
     const videoThumbnailLoader =
       new VideoThumbnailLoader(videoElement, manifest);
@@ -251,9 +251,9 @@ describe("Video Thumbnail Loader", () => {
     const manifest = rxPlayer.getManifest();
     const refToVideoAdaptation = manifest.periods[0].adaptations.video[0];
     expect(refToVideoAdaptation).not.to.equal(undefined);
-    manifest.periods[0].adaptations.video[0].trickModeTrack =
-      refToVideoAdaptation;
-    expect(manifest.periods[0].adaptations.video[0].trickModeTrack)
+    manifest.periods[0].adaptations.video[0].trickModeTracks =
+      [refToVideoAdaptation];
+    expect(manifest.periods[0].adaptations.video[0].trickModeTracks)
       .not.to.equal(undefined);
     const videoThumbnailLoader =
       new VideoThumbnailLoader(videoElement, manifest);

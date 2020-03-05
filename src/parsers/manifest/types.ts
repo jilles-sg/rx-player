@@ -133,7 +133,10 @@ export interface IParsedAdaptation {
    * Not set if unknown or if it makes no sense for the current track.
    */
   language?: string;
-  trickModeTrack?: IParsedAdaptation;
+  /**
+   * Trickmode tracks attached to the adaptation.
+   */
+  trickModeTracks?: IParsedAdaptation[];
 }
 
 /** Information on a given period of time in the Manifest */

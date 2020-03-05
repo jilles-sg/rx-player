@@ -27,7 +27,10 @@ import {
   mergeMap,
   take,
 } from "rxjs/operators";
-import Manifest, { ISegment } from "../../../manifest";
+import createSegmentLoader from "../../../core/pipelines/segment/create_segment_loader";
+import Player from "../../../index";
+import { ISegment } from "../../../manifest";
+import dash from "../../../transports/dash";
 import getContentInfos from "./get_content_infos";
 import {
   disposeSourceBuffer,
@@ -40,9 +43,6 @@ import {
   IContentInfos,
 } from "./utils";
 import VideoThumbnailLoaderError from "./video_thumbnail_loader_error";
-
-import createSegmentLoader from "../../../core/pipelines/segment/create_segment_loader";
-import dash from "../../../transports/dash";
 
 const PPromise = typeof Promise === "function" ? Promise :
                                                  pinkie;
@@ -70,13 +70,13 @@ const segmentLoader = createSegmentLoader(
 export default class VideoThumbnailLoader {
   private readonly _videoElement: HTMLVideoElement;
 
-  private _manifest: Manifest;
+  private _player: Player;
   private _currentJob?: IJob;
 
   constructor(videoElement: HTMLVideoElement,
-              manifest: Manifest) {
+              player: Player) {
     this._videoElement = videoElement;
-    this._manifest = manifest;
+    this._player = player;
   }
 
   /**
@@ -115,7 +115,12 @@ export default class VideoThumbnailLoader {
       }
     }
 
-    const contentInfos = getContentInfos(time, this._manifest);
+    const manifest = this._player.getManifest();
+    if (manifest === null) {
+      return PPromise.reject(new VideoThumbnailLoaderError("NO_MANIFEST",
+                                                           "No manifest available."));
+    }
+    const contentInfos = getContentInfos(time, manifest);
     if (contentInfos === null) {
       return PPromise.reject(new VideoThumbnailLoaderError("NO_TRACK",
                                                            "Couldn't find track for this time."));

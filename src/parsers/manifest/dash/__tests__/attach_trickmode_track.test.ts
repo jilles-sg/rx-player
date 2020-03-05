@@ -19,22 +19,21 @@ import attachTrickModeTrack from "../attach_trickmode_track";
 describe("attachTrickModeTrack", () => {
   it("should correclty attach trickmode tracks", () => {
     const trickModeTracks = [
-      { adaptation: { type: "video" }, isTrickModeFor: 1 },
-      { adaptation: { type: "video" }, isTrickModeFor: 3 },
-      { adaptation: { type: "audio" }, isTrickModeFor: 1 },
+      { adaptation: { type: "video" }, trickModeAttachedAdaptationIds: ["1", "3"] },
+      { adaptation: { type: "audio" }, trickModeAttachedAdaptationIds: ["1"] },
     ] as any;
 
     const adaptations = {
       video: [
-        { id: 1, trickModeTrack: undefined },
-        { id: 2, trickModeTrack: undefined },
-        { id: 3, trickModeTrack: undefined },
-        { id: 4, trickModeTrack: undefined },
+        { id: "1", trickModeTracks: undefined },
+        { id: "2", trickModeTracks: undefined },
+        { id: "3", trickModeTracks: undefined },
+        { id: "4", trickModeTracks: undefined },
       ],
       audio: [
-        { id: 1, trickModeTrack: undefined },
-        { id: 2, trickModeTrack: undefined },
-        { id: 3, trickModeTrack: undefined },
+        { id: "1", trickModeTracks: undefined },
+        { id: "2", trickModeTracks: undefined },
+        { id: "3", trickModeTracks: undefined },
       ],
     } as any;
 
@@ -43,15 +42,19 @@ describe("attachTrickModeTrack", () => {
 
     expect(adaptations).toEqual({
       video: [
-        { id: 1, trickModeTrack: { type: "video" } },
-        { id: 2, trickModeTrack: undefined },
-        { id: 3, trickModeTrack: { type: "video" } },
-        { id: 4, trickModeTrack: undefined },
+        { id: "1",
+          trickModeTracks: [{ type: "video" },
+                            { type: "audio" }] },
+        { id: "2", trickModeTracks: undefined },
+        { id: "3", trickModeTracks: [{ type: "video" }] },
+        { id: "4", trickModeTracks: undefined },
       ],
       audio: [
-        { id: 1, trickModeTrack: { type: "audio" } },
-        { id: 2, trickModeTrack: undefined },
-        { id: 3, trickModeTrack: undefined },
+        { id: "1",
+          trickModeTracks: [{ type: "video" },
+                            { type: "audio" }] },
+        { id: "2", trickModeTracks: undefined },
+        { id: "3", trickModeTracks: [{ type: "video" }] },
       ],
     });
   });
