@@ -39,11 +39,10 @@ export default function getContentInfos(
         videoAdaptation.trickModeTracks[0] !== undefined &&
         videoAdaptation.trickModeTracks[0].representations[0] !== undefined) {
       const representation = videoAdaptation.trickModeTracks[0].representations[0];
-      return {
-        manifest,
-        adaptation: videoAdaptation,
-        representation,
-      };
+      return { manifest,
+               period,
+               adaptation: videoAdaptation,
+               representation };
     }
   }
   return null;

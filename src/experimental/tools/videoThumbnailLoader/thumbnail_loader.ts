@@ -192,13 +192,19 @@ export default class VideoThumbnailLoader {
                                        value: { responseData: Uint8Array }; } =>
                   evt.type === "data"),
                 mergeMap((evt) => {
+                  const inventoryInfos = { manifest: contentInfos.manifest,
+                                           period: contentInfos.period,
+                                           adaptation: contentInfos.adaptation,
+                                           representation: contentInfos.representation,
+                                           segment };
                   return videoSourceBuffer
                     .pushChunk({ data: { chunk: evt.value.responseData,
                                          timestampOffset: 0,
                                          appendWindow: [undefined, undefined],
                                          initSegment: null,
                                          codec: contentInfos
-                                           .representation.getMimeTypeString() } })
+                                           .representation.getMimeTypeString() },
+                                 inventoryInfos })
                       .pipe(map(() => {
                         log.debug("VTL: Appended segment.", evt.value.responseData);
                         this._videoElement.currentTime = time;

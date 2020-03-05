@@ -24,9 +24,8 @@ describe.only("Video Thumbnail Loader", () => {
     rxPlayer.loadVideo({ url: manifestInfos.url, transport: "dash" });
     await sleep(75);
     const videoElement = document.createElement("video");
-    const manifest = rxPlayer.getManifest();
     const videoThumbnailLoader =
-      new VideoThumbnailLoader(videoElement, manifest);
+      new VideoThumbnailLoader(videoElement, rxPlayer);
     let time;
     let error;
     try {
@@ -51,7 +50,7 @@ describe.only("Video Thumbnail Loader", () => {
     expect(manifest.periods[0].adaptations.video[0].trickModeTracks)
       .not.to.equal(undefined);
     const videoThumbnailLoader =
-      new VideoThumbnailLoader(videoElement, manifest);
+      new VideoThumbnailLoader(videoElement, rxPlayer);
     let time;
     let error;
     try {
@@ -79,7 +78,7 @@ describe.only("Video Thumbnail Loader", () => {
     expect(manifest.periods[0].adaptations.video[0].trickModeTracks)
       .not.to.equal(undefined);
     const videoThumbnailLoader =
-      new VideoThumbnailLoader(videoElement, manifest);
+      new VideoThumbnailLoader(videoElement, rxPlayer);
     let time;
     let error;
     try {
@@ -112,7 +111,7 @@ describe.only("Video Thumbnail Loader", () => {
     expect(manifest.periods[0].adaptations.video[0].trickModeTracks)
       .not.to.equal(undefined);
     const videoThumbnailLoader =
-      new VideoThumbnailLoader(videoElement, manifest);
+      new VideoThumbnailLoader(videoElement, rxPlayer);
     let time;
     let error;
     try {
@@ -163,7 +162,7 @@ describe.only("Video Thumbnail Loader", () => {
     expect(manifest.periods[0].adaptations.video[0].trickModeTracks)
       .not.to.equal(undefined);
     const videoThumbnailLoader =
-      new VideoThumbnailLoader(videoElement, manifest);
+      new VideoThumbnailLoader(videoElement, rxPlayer);
     let time;
     let error;
 
@@ -215,7 +214,7 @@ describe.only("Video Thumbnail Loader", () => {
     expect(manifest.periods[0].adaptations.video[0].trickModeTracks)
       .not.to.equal(undefined);
     const videoThumbnailLoader =
-      new VideoThumbnailLoader(videoElement, manifest);
+      new VideoThumbnailLoader(videoElement, rxPlayer);
 
     xhrMock.lock();
     videoThumbnailLoader.setTime(wantedThumbnail1.time);
@@ -256,7 +255,7 @@ describe.only("Video Thumbnail Loader", () => {
     expect(manifest.periods[0].adaptations.video[0].trickModeTracks)
       .not.to.equal(undefined);
     const videoThumbnailLoader =
-      new VideoThumbnailLoader(videoElement, manifest);
+      new VideoThumbnailLoader(videoElement, rxPlayer);
 
     let error1;
     let error2;

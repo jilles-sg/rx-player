@@ -91,13 +91,12 @@ export function initSourceBuffer$(contentInfos: IContentInfos,
           throw new Error("No init segment.");
         }
         _currentContentInfos.set(element, contentInfos);
-        return segmentLoader({
-          manifest: contentInfos.manifest,
-          period: contentInfos.manifest.periods[0],
-          adaptation: contentInfos.adaptation,
-          representation: contentInfos.representation,
-          segment: initSegment,
-        }).pipe(
+        const inventoryInfos = { manifest: contentInfos.manifest,
+                                 period: contentInfos.period,
+                                 adaptation: contentInfos.adaptation,
+                                 representation: contentInfos.representation,
+                                 segment: initSegment };
+        return segmentLoader(inventoryInfos).pipe(
           filter((evt): evt is { type: "data"; value: { responseData: Uint8Array } } =>
             evt.type === "data"),
           mergeMap((evt) => {
@@ -107,7 +106,8 @@ export function initSourceBuffer$(contentInfos: IContentInfos,
                                    appendWindow: [undefined, undefined],
                                    timestampOffset: 0,
                                    codec: contentInfos
-                                     .representation.getMimeTypeString() } });
+                                     .representation.getMimeTypeString() },
+                           inventoryInfos });
           }),
           mapTo(sourceBuffer)
         );

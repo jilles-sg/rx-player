@@ -17,6 +17,7 @@
 import Manifest, {
   Adaptation,
   ISegment,
+  Period,
   Representation,
 } from "../../../manifest";
 import arrayFind from "../../../utils/array_find";
@@ -29,6 +30,7 @@ export interface IThumbnail {
 
 export interface IContentInfos {
   manifest: Manifest;
+  period: Period;
   adaptation: Adaptation;
   representation: Representation;
 }
@@ -40,7 +42,7 @@ export interface IContentInfos {
  * @returns {<Object>|undefined}
  */
 export function getNeededSegment(contentInfos: IContentInfos,
-                                   time: number): ISegment|undefined {
+                                 time: number): ISegment|undefined {
 
   const firstTime = contentInfos.representation.index.getFirstPosition() ??
                     0;
