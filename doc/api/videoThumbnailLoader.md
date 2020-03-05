@@ -29,10 +29,9 @@ import RxPlayer from "rx-player";
 const player = new RxPlayer({ /* some options */ });
 player.loadVideo({ /* some other options */ });
 const videoElement = document.createElement("video");
-const manifest = player.getManifest();
 const videoThumbnailLoader = new VideoThumbnailLoader(
   videoElement,
-  manifest
+  player
 );
 ```
 
@@ -66,7 +65,8 @@ It :
 The promise does not only rejects when setting thumbnail has failed. There are
 some cases where the thumbnail loader decides not to load. Here is a list of
 every failure code (``error.code``) :
-- NO_TRACK : In the manifest you've given, there are either no period or no
+- NO_MANIFEST : No manifest available on current RxPlayer instance.
+- NO_TRACK : In the player manifest, there are either no period or no
              representation to get video chunks.
 - NO_INIT_DATA : The chosen track does not have an init data, so it can't be
                  buffered.
