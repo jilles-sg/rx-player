@@ -27,13 +27,13 @@ import {
   shareReplay,
 } from "rxjs/operators";
 import createSegmentLoader from "../../../core/pipelines/segment/create_segment_loader";
+import { QueuedSourceBuffer } from "../../../core/source_buffers";
 import dash from "../../../transports/dash";
-import LightVideoQueuedSourceBuffer from "./light_video_queued_source_buffer";
 import prepareSourceBuffer from "./prepare_source_buffer";
 import { IContentInfos } from "./utils";
 
 const _currentVideoSourceBuffers: WeakMap<HTMLMediaElement,
-                                          LightVideoQueuedSourceBuffer> = new WeakMap();
+                                  QueuedSourceBuffer<Uint8Array>> = new WeakMap();
 const _currentContentInfos: WeakMap<HTMLMediaElement,
                                     IContentInfos> = new WeakMap();
 
@@ -54,8 +54,8 @@ const segmentLoader = createSegmentLoader(
  */
 export function initSourceBuffer$(contentInfos: IContentInfos,
                                   element: HTMLVideoElement
-): Observable<LightVideoQueuedSourceBuffer> {
-  let _sourceBufferObservable$: Observable<LightVideoQueuedSourceBuffer>;
+): Observable<QueuedSourceBuffer<Uint8Array>> {
+  let _sourceBufferObservable$: Observable<QueuedSourceBuffer<Uint8Array>>;
   const currentVideoSourceBuffer = _currentVideoSourceBuffers.get(element);
   const currentContentInfos = _currentContentInfos.get(element);
   if (currentContentInfos !== undefined &&
@@ -102,9 +102,12 @@ export function initSourceBuffer$(contentInfos: IContentInfos,
             evt.type === "data"),
           mergeMap((evt) => {
             return sourceBuffer
-              .appendSegment({ initSegment: evt.value.responseData,
-                               chunk: null,
-                               codec: contentInfos.representation.getMimeTypeString() });
+              .pushChunk({ data: { initSegment: evt.value.responseData,
+                                   chunk: null,
+                                   appendWindow: [undefined, undefined],
+                                   timestampOffset: 0,
+                                   codec: contentInfos
+                                     .representation.getMimeTypeString() } });
           }),
           mapTo(sourceBuffer)
         );

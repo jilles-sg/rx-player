@@ -20,7 +20,7 @@ import {
 } from "rxjs";
 import { mergeMap } from "rxjs/operators";
 import openMediaSource from "../../../core/init/create_media_source";
-import LightVideoQueuedSourceBuffer from "./light_video_queued_source_buffer";
+import { QueuedSourceBuffer } from "../../../core/source_buffers";
 
 /**
  * Open the media source and create the queued source buffer.
@@ -30,13 +30,14 @@ import LightVideoQueuedSourceBuffer from "./light_video_queued_source_buffer";
  */
 export default function prepareSourceBuffer(elt: HTMLVideoElement,
                                             codec: string
-): Observable<LightVideoQueuedSourceBuffer> {
+): Observable<QueuedSourceBuffer<Uint8Array>> {
   return observableDefer(() => {
     return openMediaSource(elt).pipe(
       mergeMap((mediaSource) => {
-        return new Observable<LightVideoQueuedSourceBuffer>((obs) => {
+        return new Observable<QueuedSourceBuffer<Uint8Array>>((obs) => {
+          const sourceBuffer = mediaSource.addSourceBuffer(codec);
           const queuedSourceBuffer =
-            new LightVideoQueuedSourceBuffer(codec, mediaSource);
+            new QueuedSourceBuffer<Uint8Array>("video", codec, sourceBuffer);
           obs.next(queuedSourceBuffer);
           return;
         });

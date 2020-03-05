@@ -188,10 +188,12 @@ export default class VideoThumbnailLoader {
                   evt.type === "data"),
                 mergeMap((evt) => {
                   return videoSourceBuffer
-                    .appendSegment({ chunk: evt.value.responseData,
-                                     initSegment: null,
-                                     codec: contentInfos
-                                       .representation.getMimeTypeString() })
+                    .pushChunk({ data: { chunk: evt.value.responseData,
+                                         timestampOffset: 0,
+                                         appendWindow: [undefined, undefined],
+                                         initSegment: null,
+                                         codec: contentInfos
+                                           .representation.getMimeTypeString() } })
                       .pipe(map(() => {
                         log.debug("VTL: Appended segment.", evt.value.responseData);
                         this._videoElement.currentTime = time;

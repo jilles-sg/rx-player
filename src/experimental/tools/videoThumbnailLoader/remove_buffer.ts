@@ -19,7 +19,7 @@ import {
   Observable,
   of as observableOf,
 } from "rxjs";
-import LightVideoQueuedSourceBuffer from "./light_video_queued_source_buffer";
+import { QueuedSourceBuffer } from "../../../core/source_buffers";
 
 /**
  * Remove buffer around wanted time
@@ -29,8 +29,8 @@ import LightVideoQueuedSourceBuffer from "./light_video_queued_source_buffer";
  * @returns {Observable}
  */
 export default function removeBufferForTime$(videoElement: HTMLMediaElement,
-                                      sourceBuffer: LightVideoQueuedSourceBuffer,
-                                      time: number): Observable<unknown> {
+                                             sourceBuffer: QueuedSourceBuffer<Uint8Array>,
+                                             time: number): Observable<unknown> {
   return (videoElement.buffered.length > 0) ?
     observableCombineLatest([
       ((time - 60 * 10) > 0) ?

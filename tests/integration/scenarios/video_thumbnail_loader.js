@@ -5,7 +5,7 @@ import { manifestInfos } from "../../contents/DASH_static_SegmentTimeline";
 import XHRMock from "../../utils/request_mock";
 import sleep from "../../utils/sleep";
 
-describe.only("Video Thumbnail Loader", () => {
+describe("Video Thumbnail Loader", () => {
   let rxPlayer;
   let xhrMock;
 
