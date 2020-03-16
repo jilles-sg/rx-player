@@ -22,22 +22,27 @@ import {
 import { QueuedSourceBuffer } from "../../../core/source_buffers";
 
 /**
- * Remove buffer around wanted time
+ * Remove buffer around wanted time (10 minutes before and 10 minutes
+ * after)
  * @param {HTMLMediaElement} videoElement
  * @param {Object} sourceBuffer
  * @param {Number} time
  * @returns {Observable}
  */
-export default function removeBufferForTime$(videoElement: HTMLMediaElement,
-                                             sourceBuffer: QueuedSourceBuffer<Uint8Array>,
-                                             time: number): Observable<unknown> {
+export default function removeBuffer$(
+  videoElement: HTMLMediaElement,
+  sourceBuffer: QueuedSourceBuffer<Uint8Array>,
+  time: number
+): Observable<unknown> {
+  const bufferToRemove = [ 60 * 10, // before time
+                           60 * 10 ]; // after time
   return (videoElement.buffered.length > 0) ?
     observableCombineLatest([
-      ((time - 60 * 10) > 0) ?
-        sourceBuffer.removeBuffer(0, time - (60 * 10)) :
+      ((time - bufferToRemove[0]) > 0) ?
+        sourceBuffer.removeBuffer(0, time - bufferToRemove[0]) :
         observableOf(null),
-      ((time + 60 * 10) < videoElement.duration) ?
-        sourceBuffer.removeBuffer(time + (60 * 10), videoElement.duration) :
+      ((time + bufferToRemove[1]) < videoElement.duration) ?
+        sourceBuffer.removeBuffer(time + bufferToRemove[1], videoElement.duration) :
         observableOf(null)]) :
     observableOf(null);
 }

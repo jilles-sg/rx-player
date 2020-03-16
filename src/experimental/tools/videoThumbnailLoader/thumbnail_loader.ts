@@ -16,9 +16,8 @@
 
 import pinkie from "pinkie";
 import {
-  merge as observableMerge,
-  Observable,
-  ReplaySubject,
+  race as observableRace,
+  Subject,
 } from "rxjs";
 import {
   catchError,
@@ -29,6 +28,7 @@ import {
 } from "rxjs/operators";
 import createSegmentLoader from "../../../core/pipelines/segment/create_segment_loader";
 import Player from "../../../index";
+import log from "../../../log";
 import { ISegment } from "../../../manifest";
 import dash from "../../../transports/dash";
 import getContentInfos from "./get_content_infos";
@@ -36,12 +36,8 @@ import {
   disposeSourceBuffer,
   initSourceBuffer$,
 } from "./init_source_buffer";
-import log from "./log";
-import removeBufferForTime$ from "./remove_buffer";
-import {
-  getNeededSegment,
-  IContentInfos,
-} from "./utils";
+import removeBuffer$ from "./remove_buffer";
+import { IContentInfos } from "./types";
 import VideoThumbnailLoaderError from "./video_thumbnail_loader_error";
 
 const PPromise = typeof Promise === "function" ? Promise :
@@ -90,25 +86,9 @@ export default class VideoThumbnailLoader {
    * @returns {Promise}
    */
   setTime(time: number): Promise<unknown> {
-    return this._setTime(time, this._videoElement);
-  }
-
-  /**
-   * Dispose thumbnail loader.
-   * @returns {void}
-   */
-  dispose(): void {
-    disposeSourceBuffer(this._videoElement);
-    this._currentJob?.stop();
-  }
-
-  private _setTime = (time: number,
-                      videoElement: HTMLVideoElement
-  ): Promise<unknown> => {
-
-    for (let i = 0; i < videoElement.buffered.length; i++) {
-      if (videoElement.buffered.start(i) <= time &&
-          videoElement.buffered.end(i) >= time) {
+    for (let i = 0; i < this._videoElement.buffered.length; i++) {
+      if (this._videoElement.buffered.start(i) <= time &&
+          this._videoElement.buffered.end(i) >= time) {
         this._videoElement.currentTime = time;
         log.debug("VTL: Thumbnail already loaded.");
         return PPromise.resolve(time);
@@ -129,40 +109,41 @@ export default class VideoThumbnailLoader {
     if (initURL === "") {
       return PPromise.reject(new VideoThumbnailLoaderError("NO_INIT_DATA", "No init data for track."));
     }
-    const segment = getNeededSegment(contentInfos,
-                                     time);
+    const segment = contentInfos.representation.index.getSegments(time, time + 10)[0];
     if (segment === undefined) {
       return PPromise.reject(new VideoThumbnailLoaderError("NO_THUMBNAILS", "Couldn't find thumbnail."));
     }
 
     log.debug("VTL: Found thumbnail for time", time, segment);
 
-    if (this._currentJob === undefined) {
-      return this.startJob(contentInfos, time, segment);
+    if (this._currentJob !== undefined &&
+        this._currentJob.contentInfos.representation.id ===
+          contentInfos.representation.id &&
+        this._currentJob.segment.time === segment.time &&
+        this._currentJob.segment.duration === segment.duration &&
+        this._currentJob.segment.mediaURLs?.[0] === segment.mediaURLs?.[0]) {
+      // The current job is already handling the loading for the wanted time (same
+      // thumbnail).
+      return this._currentJob.jobPromise;
     }
+    this._currentJob?.stop();
+    return this.startJob(contentInfos, time, segment);
+  }
 
-    if (this._currentJob.contentInfos.representation.getMimeTypeString() !==
-        contentInfos.representation.getMimeTypeString()) {
-      this._currentJob.stop();
-      return this.startJob(contentInfos, time, segment);
-    }
-    if (this._currentJob.segment.time !== segment.time ||
-        this._currentJob.segment.duration !== segment.duration ||
-        this._currentJob.segment.mediaURLs?.[0] !== segment.mediaURLs?.[0]) {
-      this._currentJob.stop();
-      return this.startJob(contentInfos, time, segment);
-    }
-
-    // If we reach this endpoint, it means the current job is already handling
-    // the loading for the wanted time (same thumbnail).
-    return this._currentJob.jobPromise;
+  /**
+   * Dispose thumbnail loader.
+   * @returns {void}
+   */
+  dispose(): void {
+    this._currentJob?.stop();
+    disposeSourceBuffer(this._videoElement);
   }
 
   private startJob = (contentInfos: IContentInfos,
                       time: number,
                       segment: ISegment
   ): Promise<unknown> => {
-    const killJob$ = new ReplaySubject();
+    const killJob$ = new Subject();
 
     const abortError$ = killJob$.pipe(
       map(() => {
@@ -171,13 +152,11 @@ export default class VideoThumbnailLoader {
       })
     );
 
-    const jobPromise = observableMerge(
+    const jobPromise = observableRace(
       initSourceBuffer$(contentInfos,
                         this._videoElement).pipe(
         mergeMap((videoSourceBuffer) => {
-          const removeBuffers$: Observable<unknown> =
-            removeBufferForTime$(this._videoElement, videoSourceBuffer, time);
-          return removeBuffers$.pipe(
+          return removeBuffer$(this._videoElement, videoSourceBuffer, time).pipe(
             mergeMap(() => {
               log.debug("VTL: Removed buffer before appending segments.", time);
 
@@ -208,12 +187,7 @@ export default class VideoThumbnailLoader {
                       .pipe(map(() => {
                         log.debug("VTL: Appended segment.", evt.value.responseData);
                         this._videoElement.currentTime = time;
-                        if (this._videoElement.buffered.length === 0) {
-                          throw new VideoThumbnailLoaderError("NOT_BUFFERED",
-                                                              "No buffered data after loading.");
-                        } else {
-                          return time;
-                        }
+                        return time;
                       })
                     );
                 })
@@ -230,13 +204,18 @@ export default class VideoThumbnailLoader {
       ),
       abortError$
     ).pipe(take(1)).toPromise(PPromise)
-      .then((res) => { this._currentJob = undefined; return res; })
-      .catch((err) => { this._currentJob = undefined; throw err; });
+      .finally(() => {
+        this._currentJob = undefined;
+        killJob$.complete();
+      });
 
     this._currentJob = {
       contentInfos,
       segment,
-      stop: () => killJob$.next(),
+      stop: () => {
+        killJob$.next();
+        killJob$.complete();
+      },
       jobPromise,
     };
 

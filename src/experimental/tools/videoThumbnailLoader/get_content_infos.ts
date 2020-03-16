@@ -15,7 +15,7 @@
  */
 
 import Manifest from "../../../manifest";
-import { IContentInfos } from "./utils";
+import { IContentInfos } from "./types";
 
 /**
  * From a given time, find representation and return content infos.

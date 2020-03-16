@@ -30,10 +30,10 @@ import createSegmentLoader from "../../../core/pipelines/segment/create_segment_
 import { QueuedSourceBuffer } from "../../../core/source_buffers";
 import dash from "../../../transports/dash";
 import prepareSourceBuffer from "./prepare_source_buffer";
-import { IContentInfos } from "./utils";
+import { IContentInfos } from "./types";
 
 const _currentVideoSourceBuffers: WeakMap<HTMLMediaElement,
-                                  QueuedSourceBuffer<Uint8Array>> = new WeakMap();
+                                          QueuedSourceBuffer<Uint8Array>> = new WeakMap();
 const _currentContentInfos: WeakMap<HTMLMediaElement,
                                     IContentInfos> = new WeakMap();
 

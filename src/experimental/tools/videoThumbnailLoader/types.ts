@@ -1,3 +1,4 @@
+
 /**
  * Copyright 2015 CANAL+ Group
  *
@@ -14,7 +15,13 @@
  * limitations under the License.
  */
 
-import log from "../../../log";
+import Manifest, {
+  Adaptation,
+  Period,
+  Representation
+} from "../../../manifest";
 
-// Re-use logger from RxPlayer
-export default log;
+export interface IContentInfos { manifest: Manifest;
+                                 period: Period;
+                                 adaptation: Adaptation;
+                                 representation: Representation; }
