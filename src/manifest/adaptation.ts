@@ -168,7 +168,7 @@ export default class Adaptation {
     }
 
     this.trickModeTracks = trickModeTracks !== undefined ?
-      [...trickModeTracks.map((track) => new Adaptation(track))] :
+      trickModeTracks.map((track) => new Adaptation(track)) :
       undefined;
 
     const argsRepresentations = parsedAdaptation.representations;

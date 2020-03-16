@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-import { IAdaptationType } from "../../../manifest";
+import { SUPPORTED_ADAPTATIONS_TYPE } from "../../../manifest";
 import {
   IParsedAdaptation,
   IParsedAdaptations,
 } from "../types";
 
-const KNOWN_ADAPTATION_TYPES : IAdaptationType[] = ["audio", "video", "text", "image"];
-
 /**
- * Attach trick mode tracks to adaptations.
+ * Attach trick mode tracks to adaptations by assigning to the trickModeTracks
+ * property an array of trick mode track adaptations.
  * @param {Object} adaptations
  * @param {Array.<Object>} trickModeTracks
  * @returns {void}
@@ -37,8 +36,8 @@ function attachTrickModeTrack(
     const { adaptation, trickModeAttachedAdaptationIds } = trickModeTracks[i];
     for (let m = 0; m < trickModeAttachedAdaptationIds.length; m++) {
       const trickModeAttachedAdaptationId = trickModeAttachedAdaptationIds[m];
-      for (let j = 0; j < KNOWN_ADAPTATION_TYPES.length; j++) {
-        const adaptationType = KNOWN_ADAPTATION_TYPES[j];
+      for (let j = 0; j < SUPPORTED_ADAPTATIONS_TYPE.length; j++) {
+        const adaptationType = SUPPORTED_ADAPTATIONS_TYPE[j];
         const adaptationsByType = adaptations[adaptationType];
         if (adaptationsByType !== undefined) {
           for (let k = 0; k < adaptationsByType.length; k++) {
@@ -47,7 +46,7 @@ function attachTrickModeTrack(
               if (adaptationByType.trickModeTracks === undefined) {
                 adaptationByType.trickModeTracks = [];
               }
-              adaptationByType.trickModeTracks?.push(adaptation);
+              adaptationByType.trickModeTracks.push(adaptation);
             }
           }
         }
