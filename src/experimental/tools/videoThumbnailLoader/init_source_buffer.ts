@@ -79,9 +79,9 @@ export function initSourceBuffer$(contentInfos: IContentInfos,
   }
 
   const currentInitURL =
-    currentContentInfos?.representation.index.getInitSegment()?.mediaURL;
+    currentContentInfos?.representation.index.getInitSegment()?.mediaURLs?.[0];
   const initSegment = contentInfos.representation.index.getInitSegment();
-  const initURL = initSegment?.mediaURL;
+  const initURL = initSegment?.mediaURLs?.[0];
 
   if (currentContentInfos === undefined ||
       currentInitURL !== initURL) {

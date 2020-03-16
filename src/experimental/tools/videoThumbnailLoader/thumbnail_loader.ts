@@ -125,7 +125,7 @@ export default class VideoThumbnailLoader {
       return PPromise.reject(new VideoThumbnailLoaderError("NO_TRACK",
                                                            "Couldn't find track for this time."));
     }
-    const initURL = contentInfos.representation.index.getInitSegment()?.mediaURL ?? "";
+    const initURL = contentInfos.representation.index.getInitSegment()?.mediaURLs?.[0] ?? "";
     if (initURL === "") {
       return PPromise.reject(new VideoThumbnailLoaderError("NO_INIT_DATA", "No init data for track."));
     }
@@ -148,7 +148,7 @@ export default class VideoThumbnailLoader {
     }
     if (this._currentJob.segment.time !== segment.time ||
         this._currentJob.segment.duration !== segment.duration ||
-        this._currentJob.segment.mediaURL !== segment.mediaURL) {
+        this._currentJob.segment.mediaURLs?.[0] !== segment.mediaURLs?.[0]) {
       this._currentJob.stop();
       return this.startJob(contentInfos, time, segment);
     }
