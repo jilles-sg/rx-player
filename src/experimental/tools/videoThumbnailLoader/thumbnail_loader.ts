@@ -97,21 +97,29 @@ export default class VideoThumbnailLoader {
 
     const manifest = this._player.getManifest();
     if (manifest === null) {
-      return PPromise.reject(new VideoThumbnailLoaderError("NO_MANIFEST",
-                                                           "No manifest available."));
+      return PPromise.reject(
+        new VideoThumbnailLoaderError("NO_MANIFEST",
+                                      "No manifest available."));
     }
     const contentInfos = getContentInfos(time, manifest);
     if (contentInfos === null) {
-      return PPromise.reject(new VideoThumbnailLoaderError("NO_TRACK",
-                                                           "Couldn't find track for this time."));
+      return PPromise.reject(
+        new VideoThumbnailLoaderError("NO_TRACK",
+                                      "Couldn't find track for this time."));
     }
-    const initURL = contentInfos.representation.index.getInitSegment()?.mediaURLs?.[0] ?? "";
+    const initURL = contentInfos.representation.index
+      .getInitSegment()?.mediaURLs?.[0] ?? "";
     if (initURL === "") {
-      return PPromise.reject(new VideoThumbnailLoaderError("NO_INIT_DATA", "No init data for track."));
+      return PPromise.reject(
+        new VideoThumbnailLoaderError("MISSING_INIT_DATA",
+                                      "Missing mandatory initialization data " +
+                                      "needed to display the thumbnails"));
     }
     const segment = contentInfos.representation.index.getSegments(time, time + 10)[0];
     if (segment === undefined) {
-      return PPromise.reject(new VideoThumbnailLoaderError("NO_THUMBNAILS", "Couldn't find thumbnail."));
+      return PPromise.reject(
+        new VideoThumbnailLoaderError("NO_THUMBNAILS",
+                                      "Couldn't find thumbnail."));
     }
 
     log.debug("VTL: Found thumbnail for time", time, segment);
@@ -122,8 +130,8 @@ export default class VideoThumbnailLoader {
         this._currentJob.segment.time === segment.time &&
         this._currentJob.segment.duration === segment.duration &&
         this._currentJob.segment.mediaURLs?.[0] === segment.mediaURLs?.[0]) {
-      // The current job is already handling the loading for the wanted time (same
-      // thumbnail).
+      // The current job is already handling the loading for the wanted time
+      // (same thumbnail).
       return this._currentJob.jobPromise;
     }
     this._currentJob?.stop();

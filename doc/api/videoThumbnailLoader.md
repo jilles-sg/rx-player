@@ -11,6 +11,13 @@ The goal is to make a thumbnail out of HTML5 video element, by :
 (video segments).
 - Exploiting the Media Source Extension API to make it invisible to user.
 
+The tool will need the loaded manifest video adaptation to contain trickmode
+tracks. These kind of adaptation exists in MPEG-DASH and HLS, and contains
+lightweight video tracks, most of the time including one unique frame for each
+video segments. As video segments from trickmode tracks may be quicker to load
+and easier to decode, they are preferred over standard video tracks for creating
+thumbnails.
+
 ## How to use it ###############################################################
 
 
@@ -28,16 +35,16 @@ import RxPlayer from "rx-player";
 
 const player = new RxPlayer({ /* some options */ });
 player.loadVideo({ /* some other options */ });
-const videoElement = document.createElement("video");
+
+// Video element used to display thumbnails.
+const thumbnailVideoElement = document.createElement("video");
 const videoThumbnailLoader = new VideoThumbnailLoader(
-  videoElement,
+  thumbnailVideoElement,
   player
 );
+
+videoThumbnailLoader.setTime(200);
 ```
-
-
-## Constructor #################################################################
-
 
 ## Functions ###################################################################
 
@@ -68,20 +75,18 @@ every failure code (``error.code``) :
 - NO_MANIFEST : No manifest available on current RxPlayer instance.
 - NO_TRACK : In the player manifest, there are either no period or no
              representation to get video chunks.
-- NO_INIT_DATA : The chosen track does not have an init data, so it can't be
-                 buffered.
+- MISSING_INIT_DATA : The chosen track does not have an init data, so it can't
+                      be buffered.
 - NO_THUMBNAILS : No segments are available for this time of the track.
-- ALREADY_LOADING : The thumbnail loader is already loading this thumbnail.
-- NOT_BUFFERED : After the thumbnail has been loaded, no buffered data is in
-                 the video element. It can be due to too short video chunks.
-- LOADING_ERROR : An error occured when loading thumbnail into video element.
-- ABORTED : The loading has been aborted (probably because of another job
+- LOADING_ERROR : An error occured when loading a thumbnail into the video
+                  element.
+- ABORTED : The loading has been aborted (probably because of another loading
             started)
 
 #### Example
 
 ```js
-  videoThumbnailLoader.setTime(3000, track)
+  videoThumbnailLoader.setTime(3000)
     .then(() => {
       console.log("Success :)");
     })
@@ -92,7 +97,8 @@ every failure code (``error.code``) :
 
 ### dispose ###################################################################
 
-Dispose the tool resources.
+Dispose the tool resources. It has to be called when the tool is not used
+anymore.
 
 #### Example
 
