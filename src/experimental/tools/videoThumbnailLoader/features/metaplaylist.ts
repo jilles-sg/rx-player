@@ -1,4 +1,3 @@
-
 /**
  * Copyright 2015 CANAL+ Group
  *
@@ -15,16 +14,10 @@
  * limitations under the License.
  */
 
-import Manifest, {
-  Adaptation,
-  Period,
-  Representation
-} from "../../../manifest";
-import { ITransportPipelines } from "../../../transports";
+import mpl from "../../../../transports/metaplaylist";
+import { IFetchers } from "../types";
 
-export interface IContentInfos { manifest: Manifest;
-                                 period: Period;
-                                 adaptation: Adaptation;
-                                 representation: Representation; }
-
-export type IFetchers = Partial<Record<string, ITransportPipelines>>;
+export default function addMplFeature(fetchers: IFetchers) {
+  const transports = mpl({ lowLatencyMode: false });
+  fetchers.metaplaylist = transports;
+}

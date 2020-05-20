@@ -48,6 +48,27 @@ videoThumbnailLoader.setTime(200);
 
 ## Functions ###################################################################
 
+### addFetcher #################################################################
+
+_arguments_:
+  - _fetcher_ (``Object``): Imported fetcher from VideoThumbnailLoader package.
+
+To be able to load and parse segments from a specific streaming format, you may
+import the corresponding fetcher from the VTL package, and add it to the
+instance through this function.
+
+#### Example
+
+```js
+  import {
+    DASH_FETCHER, /* dash fetcher */
+    SMOOTH_FETCHER, /* smooth fetcher */
+    MPL_FETCHER, /* metaplaylist fetcher */
+  } from "rx-player/experimental/tools/videoThumbnailLoader";
+  videoThumbnailLoader.addFetcher(DASH_FETCHER);
+  videoThumbnailLoader.addFetcher(SMOOTH_FETCHER);
+  videoThumbnailLoader.addFetcher(MPL_FETCHER);
+```
 
 ### setTime ####################################################################
 

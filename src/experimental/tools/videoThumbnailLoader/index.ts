@@ -14,5 +14,14 @@
  * limitations under the License.
  */
 
-import VideoThumbnailLoader from "./thumbnail_loader";
+import VideoThumbnailLoader, {
+  DASH_FETCHER,
+  MPL_FETCHER,
+  SMOOTH_FETCHER,
+} from "./thumbnail_loader";
+export {
+  DASH_FETCHER,
+  MPL_FETCHER,
+  SMOOTH_FETCHER,
+};
 export default VideoThumbnailLoader;

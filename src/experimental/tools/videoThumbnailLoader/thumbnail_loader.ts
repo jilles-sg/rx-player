@@ -33,14 +33,13 @@ import createSegmentLoader from "../../../core/pipelines/segment/create_segment_
 import Player from "../../../index";
 import log from "../../../log";
 import { ISegment } from "../../../manifest";
-import dash from "../../../transports/dash";
 import getContentInfos from "./get_content_infos";
 import {
   disposeSourceBuffer,
   initSourceBuffer$,
 } from "./init_source_buffer";
 import removeBuffer$ from "./remove_buffer";
-import { IContentInfos } from "./types";
+import { IContentInfos, IFetchers } from "./types";
 import VideoThumbnailLoaderError from "./video_thumbnail_loader_error";
 
 const PPromise = typeof Promise === "function" ? Promise :
@@ -50,15 +49,6 @@ interface IJob { contentInfos: IContentInfos;
                  segment: ISegment;
                  stop: () => void;
                  jobPromise: Promise<unknown>; }
-
-const { loader, parser } = dash({ lowLatencyMode: false }).video;
-const segmentLoader = createSegmentLoader(
-  loader,
-  { maxRetry: 0,
-    maxRetryOffline: 0,
-    initialBackoffDelay: 0,
-    maximumBackoffDelay: 0, }
-);
 
 /**
  * This tool, as a supplement to the RxPlayer, intent to help creating thumbnails
@@ -72,11 +62,21 @@ export default class VideoThumbnailLoader {
 
   private _player: Player;
   private _currentJob?: IJob;
+  private _fetcher: IFetchers = {};
 
   constructor(videoElement: HTMLVideoElement,
               player: Player) {
     this._videoElement = videoElement;
     this._player = player;
+  }
+
+  /**
+   * Add imported fetcher to thumbnail loader fetcher object.
+   * It allows to use it when setting time.
+   * @param {function} fetcherFunc
+   */
+  addFetcher(fetcherFunc: (features: IFetchers) => void) {
+    fetcherFunc(this._fetcher);
   }
 
   /**
@@ -159,6 +159,15 @@ export default class VideoThumbnailLoader {
                    time: number,
                    segment: ISegment
   ): Promise<unknown> {
+    const fetcher = this._fetcher[contentInfos.manifest.transport];
+    if (fetcher === undefined) {
+      const error = new VideoThumbnailLoaderError("NO_FETCHER",
+                                                  "VideoThumbnailLoaderError: No " +
+                                                  "imported fetcher for this transport type: " +
+                                                  contentInfos.manifest.transport);
+      return PPromise.reject(error);
+    }
+    const { loader, parser } = fetcher.video;
     const killJob$ = new Subject();
 
     const abortError$ = killJob$.pipe(
@@ -175,6 +184,14 @@ export default class VideoThumbnailLoader {
           const bufferCleaning$ =
             removeBuffer$(this._videoElement, videoSourceBuffer, time);
           log.debug("VTL: Removed buffer before appending segments.", time);
+
+          const segmentLoader = createSegmentLoader(
+            loader,
+            { maxRetry: 0,
+              maxRetryOffline: 0,
+              initialBackoffDelay: 0,
+              maximumBackoffDelay: 0, }
+          );
 
           const segmentLoading$ = segmentLoader({
             manifest: contentInfos.manifest,
@@ -257,3 +274,7 @@ export default class VideoThumbnailLoader {
     return jobPromise;
   }
 }
+
+export { default as DASH_FETCHER } from "./features/dash";
+export { default as SMOOTH_FETCHER } from "./features/smooth";
+export { default as MPL_FETCHER } from "./features/metaplaylist";
