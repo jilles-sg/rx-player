@@ -15,6 +15,7 @@
  */
 
 import {
+  EMPTY,
   Observable,
   of as observableOf,
 } from "rxjs";
@@ -37,8 +38,9 @@ const _currentVideoSourceBuffers: WeakMap<HTMLMediaElement,
 const _currentContentInfos: WeakMap<HTMLMediaElement,
                                     IContentInfos> = new WeakMap();
 
+const { loader, parser } = dash({ lowLatencyMode: false }).video;
 const segmentLoader = createSegmentLoader(
-  dash({ lowLatencyMode: false }).video.loader,
+  loader,
   { maxRetry: 0,
     maxRetryOffline: 0,
     initialBackoffDelay: 0,
@@ -71,50 +73,70 @@ export function initSourceBuffer$(contentInfos: IContentInfos,
             _currentVideoSourceBuffers.set(element, videoSourceBuffer);
             return videoSourceBuffer;
           }),
-          catchError(() => {
-            throw new Error("VideoThumbnailLoaderError: Couldn't open media source.");
+          catchError((err: Error) => {
+            throw new Error("VideoThumbnailLoaderError: Error when creating" +
+                            " media source or source buffer: " + err.toString());
           }),
           shareReplay()
         );
   }
 
-  const currentInitURL =
-    currentContentInfos?.representation.index.getInitSegment()?.mediaURLs?.[0];
   const initSegment = contentInfos.representation.index.getInitSegment();
-  const initURL = initSegment?.mediaURLs?.[0];
+  const currentInitSegmentId =
+    currentContentInfos?.representation.index.getInitSegment()?.id;
 
-  if (currentContentInfos === undefined ||
-      currentInitURL !== initURL) {
-    return _sourceBufferObservable$.pipe(
-      mergeMap((sourceBuffer) => {
-        if (initSegment == null) {
-          throw new Error("No init segment.");
-        }
-        _currentContentInfos.set(element, contentInfos);
-        const inventoryInfos = { manifest: contentInfos.manifest,
-                                 period: contentInfos.period,
-                                 adaptation: contentInfos.adaptation,
-                                 representation: contentInfos.representation,
-                                 segment: initSegment };
-        return segmentLoader(inventoryInfos).pipe(
-          filter((evt): evt is { type: "data"; value: { responseData: Uint8Array } } =>
-            evt.type === "data"),
-          mergeMap((evt) => {
-            return sourceBuffer
-              .pushChunk({ data: { initSegment: evt.value.responseData,
-                                   chunk: null,
-                                   appendWindow: [undefined, undefined],
-                                   timestampOffset: 0,
-                                   codec: contentInfos
-                                     .representation.getMimeTypeString() },
-                           inventoryInfos });
-          }),
-          mapTo(sourceBuffer)
-        );
-      })
-    );
+  if (currentInitSegmentId === initSegment?.id &&
+      contentInfos.representation.id === currentContentInfos?.representation.id &&
+      contentInfos.adaptation.id === currentContentInfos?.adaptation.id &&
+      contentInfos.period.id === currentContentInfos?.period.id &&
+      contentInfos.manifest.id === currentContentInfos?.manifest.id) {
+    return _sourceBufferObservable$;
   }
-  return _sourceBufferObservable$;
+
+  return _sourceBufferObservable$.pipe(
+    mergeMap((sourceBuffer) => {
+      if (initSegment == null) {
+        throw new Error("No init segment.");
+      }
+      _currentContentInfos.set(element, contentInfos);
+      const inventoryInfos = { manifest: contentInfos.manifest,
+                               period: contentInfos.period,
+                               adaptation: contentInfos.adaptation,
+                               representation: contentInfos.representation,
+                               segment: initSegment };
+      return segmentLoader(inventoryInfos).pipe(
+        filter((evt): evt is { type: "data"; value: { responseData: Uint8Array } } =>
+          evt.type === "data"),
+        mergeMap((evt) => {
+          return parser({
+            response: {
+              data: evt.value.responseData,
+              isChunked: false,
+            },
+            content: inventoryInfos,
+          }).pipe(
+            mergeMap((parserEvent) => {
+              if (parserEvent.type !== "parsed-init-segment") {
+                return EMPTY;
+              }
+              const { initializationData } = parserEvent.value;
+              const initSegmentData = initializationData instanceof ArrayBuffer ?
+                new Uint8Array(initializationData) : initializationData;
+              return sourceBuffer
+                .pushChunk({ data: { initSegment: initSegmentData,
+                                     chunk: null,
+                                     appendWindow: [undefined, undefined],
+                                     timestampOffset: 0,
+                                     codec: contentInfos
+                                       .representation.getMimeTypeString() },
+                             inventoryInfos });
+            })
+          );
+        }),
+        mapTo(sourceBuffer)
+      );
+    })
+  );
 }
 
 /**

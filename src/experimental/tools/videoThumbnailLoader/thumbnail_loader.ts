@@ -16,12 +16,15 @@
 
 import pinkie from "pinkie";
 import {
+  EMPTY,
+  merge as observableMerge,
   race as observableRace,
   Subject,
 } from "rxjs";
 import {
   catchError,
   filter,
+  ignoreElements,
   map,
   mergeMap,
   take,
@@ -48,8 +51,9 @@ interface IJob { contentInfos: IContentInfos;
                  stop: () => void;
                  jobPromise: Promise<unknown>; }
 
+const { loader, parser } = dash({ lowLatencyMode: false }).video;
 const segmentLoader = createSegmentLoader(
-  dash({ lowLatencyMode: false }).video.loader,
+  loader,
   { maxRetry: 0,
     maxRetryOffline: 0,
     initialBackoffDelay: 0,
@@ -90,7 +94,7 @@ export default class VideoThumbnailLoader {
       if (this._videoElement.buffered.start(i) <= time &&
           this._videoElement.buffered.end(i) >= time) {
         this._videoElement.currentTime = time;
-        log.debug("VTL: Thumbnail already loaded.");
+        log.debug("VTL: Thumbnail already loaded.", time);
         return PPromise.resolve(time);
       }
     }
@@ -115,10 +119,10 @@ export default class VideoThumbnailLoader {
                                       "Missing mandatory initialization data " +
                                       "needed to display the thumbnails"));
     }
-    const segment = contentInfos.representation.index.getSegments(time, time + 10)[0];
+    const segment = contentInfos.representation.index.getSegments(time, 10)[0];
     if (segment === undefined) {
       return PPromise.reject(
-        new VideoThumbnailLoaderError("NO_THUMBNAILS",
+        new VideoThumbnailLoaderError("NO_THUMBNAIL",
                                       "Couldn't find thumbnail."));
     }
 
@@ -127,9 +131,13 @@ export default class VideoThumbnailLoader {
     if (this._currentJob !== undefined &&
         this._currentJob.contentInfos.representation.id ===
           contentInfos.representation.id &&
-        this._currentJob.segment.time === segment.time &&
-        this._currentJob.segment.duration === segment.duration &&
-        this._currentJob.segment.mediaURLs?.[0] === segment.mediaURLs?.[0]) {
+        this._currentJob.contentInfos.adaptation.id ===
+          contentInfos.adaptation.id &&
+        this._currentJob.contentInfos.period.id ===
+          contentInfos.period.id &&
+        this._currentJob.contentInfos.manifest.id ===
+          contentInfos.manifest.id &&
+        this._currentJob.segment.id === segment.id) {
       // The current job is already handling the loading for the wanted time
       // (same thumbnail).
       return this._currentJob.jobPromise;
@@ -147,10 +155,10 @@ export default class VideoThumbnailLoader {
     disposeSourceBuffer(this._videoElement);
   }
 
-  private startJob = (contentInfos: IContentInfos,
-                      time: number,
-                      segment: ISegment
-  ): Promise<unknown> => {
+  private startJob(contentInfos: IContentInfos,
+                   time: number,
+                   segment: ISegment
+  ): Promise<unknown> {
     const killJob$ = new Subject();
 
     const abortError$ = killJob$.pipe(
@@ -164,30 +172,49 @@ export default class VideoThumbnailLoader {
       initSourceBuffer$(contentInfos,
                         this._videoElement).pipe(
         mergeMap((videoSourceBuffer) => {
-          return removeBuffer$(this._videoElement, videoSourceBuffer, time).pipe(
-            mergeMap(() => {
-              log.debug("VTL: Removed buffer before appending segments.", time);
+          const bufferCleaning$ =
+            removeBuffer$(this._videoElement, videoSourceBuffer, time);
+          log.debug("VTL: Removed buffer before appending segments.", time);
 
-              return segmentLoader({
-                manifest: contentInfos.manifest,
-                period: contentInfos.manifest.periods[0],
-                adaptation: contentInfos.adaptation,
-                representation: contentInfos.representation,
-                segment,
+          const segmentLoading$ = segmentLoader({
+            manifest: contentInfos.manifest,
+            period: contentInfos.manifest.periods[0],
+            adaptation: contentInfos.adaptation,
+            representation: contentInfos.representation,
+            segment,
+          });
+
+          return observableMerge(
+            bufferCleaning$.pipe(ignoreElements()),
+            segmentLoading$
+          ).pipe(
+            filter((evt): evt is { type: "data";
+                                   value: { responseData: Uint8Array }; } =>
+              evt.type === "data"),
+            mergeMap((evt) => {
+              const inventoryInfos = { manifest: contentInfos.manifest,
+                                       period: contentInfos.period,
+                                       adaptation: contentInfos.adaptation,
+                                       representation: contentInfos.representation,
+                                       segment };
+              return parser({
+                response: {
+                  data: evt.value.responseData,
+                  isChunked: false,
+                },
+                content: inventoryInfos,
               }).pipe(
-                filter((evt): evt is { type: "data";
-                                       value: { responseData: Uint8Array }; } =>
-                  evt.type === "data"),
-                mergeMap((evt) => {
-                  const inventoryInfos = { manifest: contentInfos.manifest,
-                                           period: contentInfos.period,
-                                           adaptation: contentInfos.adaptation,
-                                           representation: contentInfos.representation,
-                                           segment };
+                mergeMap((parserEvt) => {
+                  if (parserEvt.type !== "parsed-segment") {
+                    return EMPTY;
+                  }
+                  const { chunkData, appendWindow } = parserEvt.value;
+                  const segmentData = chunkData instanceof ArrayBuffer ?
+                    new Uint8Array(chunkData) : chunkData;
                   return videoSourceBuffer
-                    .pushChunk({ data: { chunk: evt.value.responseData,
+                    .pushChunk({ data: { chunk: segmentData,
                                          timestampOffset: 0,
-                                         appendWindow: [undefined, undefined],
+                                         appendWindow,
                                          initSegment: null,
                                          codec: contentInfos
                                            .representation.getMimeTypeString() },

@@ -77,7 +77,7 @@ every failure code (``error.code``) :
              representation to get video chunks.
 - MISSING_INIT_DATA : The chosen track does not have an init data, so it can't
                       be buffered.
-- NO_THUMBNAILS : No segments are available for this time of the track.
+- NO_THUMBNAIL : No segments are available for this time of the track.
 - LOADING_ERROR : An error occured when loading a thumbnail into the video
                   element.
 - ABORTED : The loading has been aborted (probably because of another loading

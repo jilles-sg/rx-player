@@ -18,7 +18,7 @@ import {
   defer as observableDefer,
   Observable,
 } from "rxjs";
-import { mergeMap } from "rxjs/operators";
+import { mergeMap, map } from "rxjs/operators";
 import openMediaSource from "../../../core/init/create_media_source";
 import { QueuedSourceBuffer } from "../../../core/source_buffers";
 
@@ -33,14 +33,11 @@ export default function prepareSourceBuffer(elt: HTMLVideoElement,
 ): Observable<QueuedSourceBuffer<Uint8Array>> {
   return observableDefer(() => {
     return openMediaSource(elt).pipe(
-      mergeMap((mediaSource) => {
-        return new Observable<QueuedSourceBuffer<Uint8Array>>((obs) => {
-          const sourceBuffer = mediaSource.addSourceBuffer(codec);
-          const queuedSourceBuffer =
-            new QueuedSourceBuffer<Uint8Array>("video", codec, sourceBuffer);
-          obs.next(queuedSourceBuffer);
-          return;
-        });
+      map((mediaSource) => {
+        const sourceBuffer = mediaSource.addSourceBuffer(codec);
+        const queuedSourceBuffer =
+          new QueuedSourceBuffer<Uint8Array>("video", codec, sourceBuffer);
+        return queuedSourceBuffer;
       })
     );
   });
