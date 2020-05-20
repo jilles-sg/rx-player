@@ -18,7 +18,7 @@ import {
   defer as observableDefer,
   Observable,
 } from "rxjs";
-import { mergeMap, map } from "rxjs/operators";
+import { map } from "rxjs/operators";
 import openMediaSource from "../../../core/init/create_media_source";
 import { QueuedSourceBuffer } from "../../../core/source_buffers";
 
