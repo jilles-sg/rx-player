@@ -69,11 +69,17 @@ export default function lowLatencySegmentLoader(
 
       mergeMap((evt : IScannedChunk) => {
         const emitted : ILoaderChunkedDataEvent[] = [];
-        for (let i = 0; i < evt.completeChunks.length; i++) {
-          emitted.push({ type: "data-chunk",
-                         value: { responseData: evt.completeChunks[i] } });
-        }
         const { event } = evt;
+        for (let i = 0; i < evt.completeChunks.length; i++) {
+          const isLastChunk = i === evt.completeChunks.length - 1;
+          emitted.push({ type: "data-chunk",
+                         value: { responseData: evt.completeChunks[i],
+                                  size: isLastChunk ? event?.value.size :
+                                                      undefined,
+                                  duration: isLastChunk ? event?.value.duration :
+                                                          undefined,
+                                } });
+        }
         if (event !== null && event.type === "data-chunk") {
           const { value } = event;
           emitted.push({ type: "progress",

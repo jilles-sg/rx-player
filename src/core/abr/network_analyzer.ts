@@ -36,6 +36,7 @@ interface INetworkAnalizerClockTick {
   currentTime : number; // current position, in seconds
   speed : number; // current playback rate
   duration : number; // whole duration of the content
+  liveGap? : number; // Gap between the live edge and current position
 }
 
 /**
@@ -238,7 +239,7 @@ export default class NetworkAnalyzer {
     let newBitrateCeil; // bitrate ceil for the chosen Representation
     let bandwidthEstimate;
     const localConf = this._config;
-    const { bufferGap, currentTime, duration } = clockTick;
+    const { bufferGap, currentTime, duration, liveGap } = clockTick;
 
     // check if should get in/out of starvation mode
     if (isNaN(duration) ||
@@ -276,14 +277,12 @@ export default class NetworkAnalyzer {
 
     // if newBitrateCeil is not yet defined, do the normal estimation
     if (newBitrateCeil == null) {
-      bandwidthEstimate = bandwidthEstimator.getEstimate();
+      const bandwidthMayBeServerLimited = liveGap !== undefined && liveGap < 4;
+      bandwidthEstimate = bandwidthEstimator.getEstimate(bandwidthMayBeServerLimited) ??
+                          lastEstimatedBitrate;
 
-      if (bandwidthEstimate != null) {
+      if (bandwidthEstimate !== undefined) {
         newBitrateCeil = bandwidthEstimate *
-          (this._inStarvationMode ? localConf.starvationBitrateFactor :
-                                    localConf.regularBitrateFactor);
-      } else if (lastEstimatedBitrate != null) {
-        newBitrateCeil = lastEstimatedBitrate *
           (this._inStarvationMode ? localConf.starvationBitrateFactor :
                                     localConf.regularBitrateFactor);
       } else {

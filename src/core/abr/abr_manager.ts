@@ -129,7 +129,7 @@ export default class ABRManager {
     const originalBandwidthEstimator = this._bandwidthEstimators[bufferType];
     if (originalBandwidthEstimator == null) {
       log.debug("ABR: Creating new BandwidthEstimator for ", bufferType);
-      const bandwidthEstimator = new BandwidthEstimator();
+      const bandwidthEstimator = new BandwidthEstimator(this._lowLatencyMode);
       this._bandwidthEstimators[bufferType] = bandwidthEstimator;
       return bandwidthEstimator;
     }

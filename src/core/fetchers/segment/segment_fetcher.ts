@@ -110,12 +110,12 @@ export default function createSegmentFetcher<T>(
         switch (arg.type) {
           case "metrics": {
             const { value } = arg;
-            const { size, duration } = value; // unwrapping for TS
+            const { size, duration, isChunk } = value; // unwrapping for TS
 
             // format it for ABR Handling
             if (size != null && duration != null) {
               requests$.next({ type: "metrics",
-                              value: { size, duration, content } });
+                              value: { size, duration, content, isChunk } });
             }
             break;
           }

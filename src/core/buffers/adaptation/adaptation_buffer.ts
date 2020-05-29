@@ -94,6 +94,8 @@ export interface IAdaptationBufferClockTick extends IRepresentationBufferClockTi
   isPaused: boolean;
   /** Last "playback rate" asked by the user. */
   speed : number;
+  /** Gap between the live edge and current position */
+  liveGap? : number;
 }
 
 /** Arguments given when creating a new `AdaptationBuffer`. */

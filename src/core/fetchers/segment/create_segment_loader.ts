@@ -60,6 +60,7 @@ export interface ISegmentLoaderWarning { type : "warning";
 // Request metrics are available
 export interface ISegmentLoaderMetrics { type : "metrics";
                                          value : { size? : number;
+                                                   isChunk : boolean;
                                                    duration? : number; }; }
 
 // The request begins to be done
@@ -235,10 +236,12 @@ export default function createSegmentLoader<T>(
     return loadData(content).pipe(
       mergeMap((arg) : Observable<ISegmentLoaderEvent<T>> => {
         const metrics$ =
+          arg.type === "data-chunk" ||
           arg.type === "data-chunk-complete" ||
           arg.type === "data-loaded" ? observableOf({
                                            type: "metrics" as const,
                                            value: { size: arg.value.size,
+                                                    isChunk: arg.type === "data-chunk",
                                                     duration: arg.value.duration } }) :
                                        EMPTY;
 
@@ -263,14 +266,16 @@ export default function createSegmentLoader<T>(
             return observableOf(arg);
 
           case "data-chunk":
-            return observableOf({ type: "chunk" as const,
-                                  value: objectAssign({}, content, {
-                                    responseData: arg.value.responseData }),
-            });
+            return observableConcat(
+              observableOf({
+                type: "chunk" as const,
+                value: objectAssign({},
+                                    content,
+                                    { responseData: arg.value.responseData }), }),
+              metrics$);
           case "data-chunk-complete":
-            const _complete$ = observableOf({ type: "chunk-complete" as const,
-                                              value: null });
-            return observableConcat(_complete$, metrics$);
+            return observableOf({ type: "chunk-complete" as const,
+                                  value: null });
         }
         return assertUnreachable(arg);
       }));

@@ -66,10 +66,12 @@ export interface IRepresentationEstimatorClockTick {
   currentTime : number; // current position, in seconds
   speed : number; // current playback rate
   duration : number; // whole duration of the content
+  liveGap? : number; // Gap between the live edge and current position
 }
 
 interface IABRMetricValue { duration: number;
                             size: number;
+                            isChunk: boolean;
                             content: { representation: Representation;
                                        adaptation: Adaptation;
                                        segment: ISegment; }; }
@@ -199,16 +201,16 @@ export default function RepresentationEstimator({
    * @param {Object} value
    */
   function onMetric(value : IABRMetricValue) : void {
-    const { duration, size, content } = value;
+    const { duration, size, content, isChunk } = value;
 
-    if (shouldIgnoreMetrics(content, duration)) {
+    if (!isChunk && shouldIgnoreMetrics(content, duration)) {
       // We already loaded not cached segments.
       // Do not consider cached segments anymore.
       return;
     }
 
     // calculate bandwidth
-    bandwidthEstimator.addSample(duration, size);
+    bandwidthEstimator.addSample(duration, size, isChunk);
 
     // calculate "maintainability score"
     const { segment } = content;
