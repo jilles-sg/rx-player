@@ -277,9 +277,11 @@ class ContentList extends React.Component {
 
     // estimate first index which should be selected
     const contentList = this.state.contentsPerType[this.state.transportType];
-    const firstEnabledContentIndex = getIndexOfFirstEnabledContent(contentList);
-    const content = contentList[firstEnabledContentIndex];
-    this.changeSelectedContent(firstEnabledContentIndex, content);
+    const content = contentList[contentList.length - 1];
+    this.changeSelectedContent(contentList.length - 1, content);
+    window.play = () => {
+      this.loadContent(content);
+    };
   }
 
   /**
