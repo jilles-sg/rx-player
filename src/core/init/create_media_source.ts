@@ -40,15 +40,15 @@ const { onSourceOpen$ } = events;
  * @param {number} duration
  */
 export function setDurationToMediaSource(
-  mediaSource : MediaSource,
-  duration : number
+  _mediaSource : MediaSource,
+  _duration : number
 ) : void {
-  const newDuration = duration === Infinity ? Number.MAX_VALUE :
-                                              duration;
-  if (mediaSource.duration !== newDuration) {
-    log.info("Init: Setting duration", newDuration);
-    mediaSource.duration = newDuration;
-  }
+  // const newDuration = duration === Infinity ? Number.MAX_VALUE :
+  //                                             duration;
+  // if (mediaSource.duration !== newDuration) {
+  //   log.info("Init: Setting duration", newDuration);
+  //   mediaSource.duration = newDuration;
+  // }
 }
 
 /**
