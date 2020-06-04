@@ -213,6 +213,10 @@ export default function InitializeOnMediaSource(
    * The MediaSource will be closed on unsubscription.
    */
   const openMediaSource$ = openMediaSource(mediaElement).pipe(
+    tap((ms) => {
+      /* tslint:disable no-console */
+      console.warn("JUSTE APRES L'EVENT OPEN DU MEDIASOURCE", ms.readyState);
+    }),
     deferSubscriptions(),
     share());
 
