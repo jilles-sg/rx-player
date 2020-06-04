@@ -410,15 +410,7 @@ function createNativeQueuedSourceBuffer(
   mediaSource : MediaSource,
   codec : string
 ) : QueuedSourceBuffer<ArrayBuffer|ArrayBufferView|TypedArray|DataView|null> {
-  /* tslint:disable no-console */
-  console.warn("READY STATE DU MEDIASOURCE:", mediaSource.readyState);
-  let sourceBuffer;
-  try {
-    sourceBuffer = mediaSource.addSourceBuffer(codec);
-  } catch (e) {
-    console.warn("OK il plante bien a la creation du SourceBuffer");
-    throw e;
-  }
+  const sourceBuffer = mediaSource.addSourceBuffer(codec);
   return new QueuedSourceBuffer(bufferType, codec, sourceBuffer);
 }
 

@@ -40,15 +40,15 @@ const { onSourceOpen$ } = events;
  * @param {number} duration
  */
 export function setDurationToMediaSource(
-  _mediaSource : MediaSource,
-  _duration : number
+  mediaSource : MediaSource,
+  duration : number
 ) : void {
-  // const newDuration = duration === Infinity ? Number.MAX_VALUE :
-  //                                             duration;
-  // if (mediaSource.duration !== newDuration) {
-  //   log.info("Init: Setting duration", newDuration);
-  //   mediaSource.duration = newDuration;
-  // }
+  const newDuration = duration === Infinity ? Number.MAX_VALUE :
+                                              duration;
+  if (mediaSource.duration !== newDuration) {
+    log.info("Init: Setting duration", newDuration);
+    mediaSource.duration = newDuration;
+  }
 }
 
 /**
@@ -132,6 +132,8 @@ function createMediaSource(
 
     log.info("Init: Attaching MediaSource URL to the media element", objectURL);
     mediaElement.src = objectURL;
+
+    (window as any).MSource = mediaSource;
 
     observer.next(mediaSource);
     return () => {
