@@ -20,6 +20,7 @@ import {
   of as observableOf,
   throwError as observableThrow,
 } from "rxjs";
+import { tap } from "rxjs/operators";
 import castToObservable from "../../../utils/cast_to_observable";
 import {
   // XXX TODO remove when the issue is resolved
@@ -196,7 +197,15 @@ function setMediaKeys(
   elt : HTMLMediaElement,
   mediaKeys : MediaKeys|ICustomMediaKeys|null
 ) : Observable<unknown> {
-  return observableDefer(() => castToObservable(_setMediaKeys(elt, mediaKeys)));
+  return observableDefer(() => {
+    /* tslint:disable no-console */
+    console.warn("JUST BEFORE setMediaKeys", (window as any).MSource.readyState);
+    const prom = castToObservable(_setMediaKeys(elt, mediaKeys));
+    console.warn("JUST AFTER setMediaKeys", (window as any).MSource.readyState);
+    return prom;
+  }).pipe(tap(() => {
+    console.warn("AFTER setMediaKeys promise", (window as any).MSource.readyState);
+  }));
 }
 
 export {
