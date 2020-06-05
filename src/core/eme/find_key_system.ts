@@ -197,7 +197,7 @@ function buildKeySystemConfigurations(
   // https://storage.googleapis.com/wvdocs/Chrome_EME_Changes_and_Best_Practices.pdf
   // https://www.w3.org/TR/encrypted-media/#get-supported-configuration-and-consent
   const videoCapabilities: IMediaCapability[] =
-    flatMap(videoRobustnesses,
+    flatMap([""],
             robustness => [{ contentType: "video/mp4;codecs=\"avc1.4d401e\"",
                              robustness },
                            { contentType: "video/mp4;codecs=\"avc1.42e01e\"",
@@ -206,7 +206,7 @@ function buildKeySystemConfigurations(
                              robustness } ]);
 
   const audioCapabilities: IMediaCapability[] =
-    flatMap(audioRobustnesses,
+    flatMap([""],
             robustness => [{ contentType: "audio/mp4;codecs=\"mp4a.40.2\"",
                              robustness },
                            { contentType: "audio/webm;codecs=opus",
