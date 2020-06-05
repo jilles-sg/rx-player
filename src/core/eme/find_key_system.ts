@@ -197,19 +197,13 @@ function buildKeySystemConfigurations(
   // https://storage.googleapis.com/wvdocs/Chrome_EME_Changes_and_Best_Practices.pdf
   // https://www.w3.org/TR/encrypted-media/#get-supported-configuration-and-consent
   const videoCapabilities: IMediaCapability[] =
-    flatMap([""],
-            robustness => [{ contentType: "video/mp4;codecs=\"avc1.4d401e\"",
-                             robustness },
-                           { contentType: "video/mp4;codecs=\"avc1.42e01e\"",
-                             robustness },
-                           { contentType: "video/webm;codecs=\"vp8\"",
+    flatMap(videoRobustnesses,
+            robustness => [{ contentType: "video/mp4;codecs=\"avc1.640028\"",
                              robustness } ]);
 
   const audioCapabilities: IMediaCapability[] =
-    flatMap([""],
+    flatMap(audioRobustnesses,
             robustness => [{ contentType: "audio/mp4;codecs=\"mp4a.40.2\"",
-                             robustness },
-                           { contentType: "audio/webm;codecs=opus",
                              robustness } ]);
 
   // TODO Re-test with a set contentType but an undefined robustness on the
