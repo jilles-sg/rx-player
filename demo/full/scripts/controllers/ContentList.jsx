@@ -279,8 +279,9 @@ class ContentList extends React.Component {
     const contentList = this.state.contentsPerType[this.state.transportType];
     const content = contentList[contentList.length - 1];
     this.changeSelectedContent(contentList.length - 1, content);
-    window.play = () => {
-      this.loadContent(content);
+    window.contentList = contentList;
+    window.play = (index) => {
+      this.loadContent(contentList[index]);
     };
   }
 
