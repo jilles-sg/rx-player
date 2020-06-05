@@ -19,8 +19,8 @@ export default function parseDRMConfigurations(drmConfigurations) {
     const type = drm.toLowerCase();
     const keySystem = {
       type,
-      // distinctiveIdentifierRequired: true,
-      persistentStateRequired: true,
+      distinctiveIdentifierRequired: true,
+      // persistentStateRequired: true,
       getLicense: generateGetLicense(licenseServerUrl,
                                      type,
                                      !!fallbackLicenseRequest),
