@@ -15,8 +15,9 @@
  */
 
 import {
+  EMPTY,
   fromEvent as observableFromEvent,
-  Observable
+  Observable,
 } from "rxjs";
 import { mergeMap } from "rxjs/operators";
 import { MediaError } from "../../errors";
@@ -51,6 +52,9 @@ export default function throwOnMediaError(
           throw new MediaError("MEDIA_ERR_SRC_NOT_SUPPORTED",
                                "The media resource has been found to be unsuitable.");
         default:
+          if (mediaElement.error === null) {
+            return EMPTY;
+          }
           /* tslint:disable no-console */
           console.warn("L'erreur:", error, mediaElement.error);
           throw new MediaError("MEDIA_ERR_UNKNOWN",
