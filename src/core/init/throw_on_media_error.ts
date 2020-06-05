@@ -31,7 +31,7 @@ export default function throwOnMediaError(
   mediaElement : HTMLMediaElement
 ) : Observable<never> {
   return observableFromEvent(mediaElement, "error")
-    .pipe(mergeMap(() => {
+    .pipe(mergeMap((error) => {
       const errorCode = mediaElement.error == null ? 0 :
                                                     mediaElement.error.code;
       switch (errorCode) {
@@ -51,6 +51,8 @@ export default function throwOnMediaError(
           throw new MediaError("MEDIA_ERR_SRC_NOT_SUPPORTED",
                                "The media resource has been found to be unsuitable.");
         default:
+          /* tslint:disable no-console */
+          console.warn("L'erreur:", error, mediaElement.error);
           throw new MediaError("MEDIA_ERR_UNKNOWN",
                                "The HTMLMediaElement errored due to an unknown reason.");
       }
