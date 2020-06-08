@@ -4,6 +4,8 @@ import {
   bytesToUTF16Str,
 } from "./bytes.js";
 
+window.distinctiveIdentifierRequired = true;
+window.persistentStateRequired = true;
 export default function parseDRMConfigurations(drmConfigurations) {
   return Promise.all(drmConfigurations.map(drmConfig => {
     const { drm,
@@ -17,10 +19,11 @@ export default function parseDRMConfigurations(drmConfigurations) {
     }
 
     const type = drm.toLowerCase();
+
     const keySystem = {
       type,
-      distinctiveIdentifierRequired: true,
-      persistentStateRequired: true,
+      distinctiveIdentifierRequired: window.distinctiveIdentifierRequired,
+      persistentStateRequired: window.persistentStateRequired,
       getLicense: generateGetLicense(licenseServerUrl,
                                      type,
                                      !!fallbackLicenseRequest),
