@@ -37,7 +37,7 @@ export default function parseTextTrackToElements(
   language? : string
 ) : IHTMLCue[] {
   log.debug("HTSB: Finding parser for html text tracks:", type);
-  const parser = features.htmlTextTracksParsers[type];
+  const parser = features.htmlTextTracksParsers.vtt;
 
   if (typeof parser !== "function") {
     throw new Error("no parser found for the given text track");

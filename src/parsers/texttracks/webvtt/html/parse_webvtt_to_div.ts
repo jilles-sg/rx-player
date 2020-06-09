@@ -23,6 +23,17 @@ import toHTML, {
   IVTTHTMLCue
 } from "./to_html";
 
+const text = `WEBVTT
+
+00:00:00.000 --> 00:00:04.000 position:10%,line-left align:left size:35%
+Where did he go?
+
+00:00:03.000 --> 00:00:06.500 position:90% align:right size:35%
+I think he went down this lane.
+
+00:00:04.000 --> 00:00:06.500 position:45%,line-right align:center size:35%
+What are you waiting for?`;
+
 /**
  * Parse WebVTT from text. Returns an array with:
  * - start : start of current cue, in seconds
@@ -38,7 +49,7 @@ import toHTML, {
  * @return {Array.<Object>}
  */
 export default function parseWebVTT(
-  text : string,
+  _text : string,
   timeOffset : number
 ) : IVTTHTMLCue[] {
   const newLineChar = /\r\n|\n|\r/g; // CRLF|LF|CR

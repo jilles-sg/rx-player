@@ -85,6 +85,7 @@ const PLAYER = ({ $destroy, state }, { videoElement, textTrackElement }) => {
 
     LOAD: (arg) => {
       player.loadVideo(Object.assign({
+        textrackMode: "html",
         textTrackElement,
         networkConfig: {
           segmentRetry: Infinity,
