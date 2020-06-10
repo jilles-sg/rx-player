@@ -166,7 +166,9 @@ function Player() {
                 className="text-track"
                 ref={textTrackElement}
               />
-              <video ref={videoElement}/>
+              <video ref={videoElement}>
+                <track kind="captions" label="English" srclang="en" src="./a.vtt" />
+              </video>
 
             </div>
             <PlayerKnobsSettings
