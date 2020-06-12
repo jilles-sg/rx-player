@@ -161,6 +161,10 @@ export default class InitDataStore<T> {
     initDataType : string | undefined
   ) : T | undefined {
     const initDataHash = hashBuffer(initData);
+    console.warn("!!! IN REMOVE", initDataType, initDataHash,
+                 JSON.stringify(this._storage.map(stored => {
+                   return [stored.initDataHash, stored.initDataType];
+                 })));
     const indexOf = this._findIndex(initData, initDataType, initDataHash);
     if (indexOf === -1) {
       return undefined;
