@@ -29,6 +29,7 @@ import {
   mapTo,
   mergeMap,
   share,
+  shareReplay,
   startWith,
   switchMap,
   take,
@@ -225,7 +226,7 @@ export default function InitializeOnMediaSource(
                                        protectedSegments$,
                                        openMediaSource$).pipe(
     deferSubscriptions(),
-    share()
+    shareReplay()
   );
 
   /**
@@ -254,7 +255,8 @@ export default function InitializeOnMediaSource(
 
   /** Load and play the content asked. */
   const loadContent$ = emeManager$.pipe(
-    filter((evt) => evt.type === "created-media-keys"),
+    filter((evt) => evt.type === "created-media-keys" ||
+                    evt.type === "eme-disabled"),
     take(1),
     mergeMap(() => observableCombineLatest([initialManifest$,
                                             openMediaSource$,
